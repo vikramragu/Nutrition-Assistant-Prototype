@@ -23,7 +23,7 @@ Everything below is designed so that a later milestone can populate `claims[].so
 |---|---|---|
 | Frontend | Next.js (App Router, TypeScript) | Single deployable to Vercel, server-side route handlers double as a thin proxy if ever needed, good fit for a chat UI with streaming. |
 | Backend | FastAPI (Python) | Native Pydantic models double as the structured-output schema and the request/response validation layer — one schema, no drift. |
-| Model provider | Anthropic API (Claude), via forced tool-use for structured output | Keeps the whole stack on one vendor family; abstracted behind a `ModelClient` interface (Section 6) so swapping to OpenAI structured outputs is a single-file change. |
+| Model provider | Groq API, model `openai/gpt-oss-120b`, via JSON Schema structured outputs (`response_format: {type: "json_schema", strict: true}`) | Fast inference on an open-weight model; Groq's strict mode uses constrained decoding to guarantee schema-valid JSON. Abstracted behind a `ModelClient` interface (Section 6) so swapping providers or models is a single-file change. |
 | Storage | Postgres (Railway-managed) | Survives redeploys/restarts (unlike SQLite on an ephemeral container filesystem), works identically in local dev via Docker and in production via Railway's managed Postgres plugin. |
 | Frontend hosting | Vercel | Native Next.js support, zero-config. |
 | Backend hosting | Railway | Long-running FastAPI process + managed Postgres in the same project. |
@@ -60,8 +60,8 @@ These are opinionated choices made from the problem statement's allowed options.
 │                              ▼                             │
 │                     ┌──────────────────┐                   │
 │                     │ ModelClient        │  (Section 6)     │
-│                     │ (Anthropic, forced │                  │
-│                     │  tool-use schema)  │                  │
+│                     │ (Groq, JSON Schema │                  │
+│                     │  structured output)│                  │
 │                     └────────┬─────────┘                   │
 │                              ▼                             │
 │                     ┌──────────────────┐                   │
@@ -126,13 +126,13 @@ Single page (`app/page.tsx`) with a two-pane layout:
    - `4xx/5xx` → render generic error, do not fabricate an assistant message.
 4. `conversation_id` is persisted in local component state (and optionally `localStorage`) so a page refresh can reload history via `GET /api/conversations/{id}`.
 
-The frontend never imports or calls the Anthropic SDK — no API key is ever shipped to the browser bundle.
+The frontend never imports or calls the Groq SDK — no API key is ever shipped to the browser bundle.
 
 ---
 
 ## 5. Structured Response Schema
 
-Defined once, in Pydantic, and reused for: (a) the tool-use schema sent to Anthropic, (b) response validation, (c) the DB row shape, (d) the frontend TypeScript type (kept in sync manually or via an OpenAPI-generated client — see Section 10).
+Defined once, in Pydantic, and reused for: (a) the JSON Schema sent to Groq, (b) response validation, (c) the DB row shape, (d) the frontend TypeScript type (kept in sync manually or via an OpenAPI-generated client — see Section 10).
 
 ```python
 class Claim(BaseModel):
@@ -146,9 +146,9 @@ class NutritionAnswer(BaseModel):
 
 Key implementation details:
 
-- The schema is sent to Anthropic as a **tool definition** with `tool_choice={"type": "tool", "name": "submit_answer"}`, forcing the model to respond via structured tool-use input rather than free text. This is Anthropic's structured-output mechanism referenced in the problem statement.
-- The backend parses the tool-use block's `input` field through `NutritionAnswer.model_validate(...)`.
-- **On `ValidationError`**: the request is treated as a **hard failure** — logged (Section 9), a `502`-class error returned to the client, and *no* attempt is made to regex/extract an answer from raw text. This directly satisfies the "parsing/validation failure, not prose repair" requirement.
+- The schema is sent to Groq's chat completions API via `response_format={"type": "json_schema", "json_schema": {"name": "nutrition_answer", "strict": True, "schema": {...}}}`, on `openai/gpt-oss-120b` — one of the models Groq's strict mode supports. Strict mode uses constrained decoding to guarantee the output matches the schema exactly (every property `required`, `additionalProperties: false`). This is Groq's structured-output capability referenced in the problem statement.
+- The backend parses `response.choices[0].message.content` (a JSON string) through `json.loads(...)` then `NutritionAnswer.model_validate(...)`.
+- **On `ValidationError`** (or invalid JSON): the request is treated as a **hard failure** — logged (Section 9), a `502`-class error returned to the client, and *no* attempt is made to regex/extract an answer from raw text. This directly satisfies the "parsing/validation failure, not prose repair" requirement.
 - `source` is typed `Literal[None]` rather than `Optional[str]` deliberately for this milestone — it makes "must be null" a schema-level guarantee, not a convention. Widening it to `Optional[SourceRef]` is the only schema change needed for the future milestone; the top-level `answer`/`claims` contract is untouched.
 
 ---
@@ -162,9 +162,9 @@ class ModelClient(Protocol):
     ) -> NutritionAnswer: ...
 ```
 
-- `AnthropicModelClient` is the concrete implementation for this milestone (forced tool-use, as above).
-- Isolating this behind a Protocol means: (a) the safety/validation/persistence layers are provider-agnostic, (b) swapping to OpenAI's `response_format={"type": "json_schema", ...}` is a new class, not a rewrite, (c) the eval harness (Section 9) can inject a fake client for deterministic tests.
-- The client is instantiated once per process with the API key read from environment variables (`ANTHROPIC_API_KEY`), never from request input.
+- `GroqModelClient` is the concrete implementation for this milestone (JSON Schema structured output, as above), using model `openai/gpt-oss-120b` (configurable via an env var, since the same strict-mode contract holds for any Groq model that supports it).
+- Isolating this behind a Protocol means: (a) the safety/validation/persistence layers are provider-agnostic, (b) swapping to Anthropic's forced tool-use or OpenAI's `response_format={"type": "json_schema", ...}` is a new class, not a rewrite, (c) the eval harness (Section 9) can inject a fake client for deterministic tests.
+- The client is instantiated once per process with the API key read from environment variables (`GROQ_API_KEY`), never from request input.
 
 ---
 
@@ -365,12 +365,12 @@ GitHub repo (single monorepo: /frontend, /backend, /docs, /eval)
         │
         └── Railway ── watches /backend  ── builds FastAPI (Docker or Nixpacks)
                              │                ── public URL (api)
-                             ├─ env: ANTHROPIC_API_KEY (secret)
+                             ├─ env: GROQ_API_KEY (secret)
                              └─ Postgres plugin (managed, same Railway project)
 ```
 
 - CORS on the FastAPI app is restricted to the Vercel deployment's origin.
-- The Anthropic API key exists only in Railway's environment — never in a `NEXT_PUBLIC_*` variable, never in client bundle.
+- The Groq API key exists only in Railway's environment — never in a `NEXT_PUBLIC_*` variable, never in client bundle.
 - Local dev: `docker-compose.yml` runs Postgres; frontend and backend run via their normal dev servers pointed at `localhost`.
 
 ---

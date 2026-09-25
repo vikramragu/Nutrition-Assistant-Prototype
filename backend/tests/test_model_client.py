@@ -1,19 +1,18 @@
+import json
 from types import SimpleNamespace
 
 import pytest
 
-from services.model_client import AnthropicModelClient, ModelResponseError
+from services.model_client import GroqModelClient, ModelResponseError
 
 
-def _fake_response(*, stop_reason="tool_use", content=None, stop_details=None):
-    return SimpleNamespace(stop_reason=stop_reason, content=content or [], stop_details=stop_details)
+def _fake_response(*, content, finish_reason="stop"):
+    message = SimpleNamespace(content=content)
+    choice = SimpleNamespace(message=message, finish_reason=finish_reason)
+    return SimpleNamespace(choices=[choice])
 
 
-def _tool_use_block(input_):
-    return SimpleNamespace(type="tool_use", input=input_)
-
-
-class _FakeMessages:
+class _FakeCompletions:
     def __init__(self, response):
         self._response = response
 
@@ -21,27 +20,30 @@ class _FakeMessages:
         return self._response
 
 
-class _FakeAnthropicClient:
+class _FakeChat:
     def __init__(self, response):
-        self.messages = _FakeMessages(response)
+        self.completions = _FakeCompletions(response)
 
 
-def _client_returning(response) -> AnthropicModelClient:
-    return AnthropicModelClient(client=_FakeAnthropicClient(response))
+class _FakeGroqClient:
+    def __init__(self, response):
+        self.chat = _FakeChat(response)
+
+
+def _client_returning(response) -> GroqModelClient:
+    return GroqModelClient(client=_FakeGroqClient(response))
 
 
 def test_valid_model_output_parses_into_nutrition_answer():
     response = _fake_response(
-        content=[
-            _tool_use_block(
-                {
-                    "answer": "Adults typically need about 0.8g of protein per kg of body weight.",
-                    "claims": [
-                        {"claim": "RDA for protein is 0.8g/kg body weight.", "source": None}
-                    ],
-                }
-            )
-        ]
+        content=json.dumps(
+            {
+                "answer": "Adults typically need about 0.8g of protein per kg of body weight.",
+                "claims": [
+                    {"claim": "RDA for protein is 0.8g/kg body weight.", "source": None}
+                ],
+            }
+        )
     )
     client = _client_returning(response)
 
@@ -55,7 +57,7 @@ def test_valid_model_output_parses_into_nutrition_answer():
 
 def test_missing_required_field_is_rejected_as_validation_failure():
     # Missing `claims` entirely -- schema-nonconformant.
-    response = _fake_response(content=[_tool_use_block({"answer": "Some answer."})])
+    response = _fake_response(content=json.dumps({"answer": "Some answer."}))
     client = _client_returning(response)
 
     with pytest.raises(ModelResponseError):
@@ -65,16 +67,12 @@ def test_missing_required_field_is_rejected_as_validation_failure():
 def test_non_null_source_is_rejected_as_validation_failure():
     # The model fabricated a source -- must be a hard failure, never silently coerced to null.
     response = _fake_response(
-        content=[
-            _tool_use_block(
-                {
-                    "answer": "Some answer.",
-                    "claims": [
-                        {"claim": "A claim.", "source": "https://example.com/fabricated"}
-                    ],
-                }
-            )
-        ]
+        content=json.dumps(
+            {
+                "answer": "Some answer.",
+                "claims": [{"claim": "A claim.", "source": "https://example.com/fabricated"}],
+            }
+        )
     )
     client = _client_returning(response)
 
@@ -82,24 +80,17 @@ def test_non_null_source_is_rejected_as_validation_failure():
         client.get_structured_answer("system prompt", [], "A question")
 
 
-def test_no_tool_use_block_is_rejected_as_validation_failure():
-    # e.g. the model responded with plain text instead of calling the tool.
-    response = _fake_response(
-        stop_reason="end_turn",
-        content=[SimpleNamespace(type="text", text="I'll just answer in prose instead.")],
-    )
+def test_invalid_json_is_rejected_as_validation_failure():
+    response = _fake_response(content="not valid json at all {")
     client = _client_returning(response)
 
     with pytest.raises(ModelResponseError):
         client.get_structured_answer("system prompt", [], "A question")
 
 
-def test_refusal_stop_reason_is_rejected_as_validation_failure():
-    response = _fake_response(
-        stop_reason="refusal",
-        content=[],
-        stop_details=SimpleNamespace(category="frontier_llm"),
-    )
+def test_empty_content_is_rejected_as_validation_failure():
+    # e.g. the model hit max_tokens before producing any content.
+    response = _fake_response(content=None, finish_reason="length")
     client = _client_returning(response)
 
     with pytest.raises(ModelResponseError):

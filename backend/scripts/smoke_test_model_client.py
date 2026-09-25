@@ -1,10 +1,10 @@
 """Manual smoke test for Phase 2 (implementation-plan.md).
 
-Calls the real Anthropic API with a handful of nutrition questions and confirms
+Calls the real Groq API with a handful of nutrition questions and confirms
 the structured-output round trip works end to end. Costs real API credits --
 run manually, not part of the automated test suite.
 
-Usage (from backend/, with ANTHROPIC_API_KEY set in the environment or .env):
+Usage (from backend/, with GROQ_API_KEY set in the environment or .env):
     .venv/bin/python scripts/smoke_test_model_client.py
 """
 
@@ -13,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from services.model_client import AnthropicModelClient, ModelResponseError  # noqa: E402
+from services.model_client import GroqModelClient, ModelResponseError  # noqa: E402
 
 QUESTIONS = [
     "How much protein does an adult need daily?",
@@ -25,7 +25,7 @@ QUESTIONS = [
 
 def main() -> None:
     system_prompt = (Path(__file__).resolve().parents[1] / "prompts" / "system_prompt.md").read_text()
-    client = AnthropicModelClient()
+    client = GroqModelClient()
 
     failures = 0
     for question in QUESTIONS:

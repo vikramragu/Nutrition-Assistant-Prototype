@@ -9,7 +9,7 @@ This plan sequences the work described in [problemStatement.md](./problemStateme
 **Goal:** empty-but-running skeleton for every piece of the stack, deployable end-to-end before any real logic exists.
 
 - Initialize git repo, monorepo layout per architecture.md §13 (`/frontend`, `/backend`, `/docs`, `/eval`).
-- `backend/`: FastAPI app skeleton, `GET /health`, `requirements.txt`/`pyproject.toml`, `.env.example` (`ANTHROPIC_API_KEY`, `DATABASE_URL`).
+- `backend/`: FastAPI app skeleton, `GET /health`, `requirements.txt`/`pyproject.toml`, `.env.example` (`GROQ_API_KEY`, `DATABASE_URL`).
 - `frontend/`: Next.js (App Router, TypeScript) skeleton, `lib/api.ts` stub, `.env.example` (`NEXT_PUBLIC_API_BASE_URL`).
 - `docker-compose.yml` for local Postgres.
 - CORS configured on FastAPI restricted to the frontend origin (local first, Vercel origin added in Phase 6).
@@ -43,10 +43,10 @@ This plan sequences the work described in [problemStatement.md](./problemStateme
 **Goal:** a single, swappable path from (system prompt, history, message) → validated `NutritionAnswer`, with hard failure on non-conformance.
 
 - `services/model_client.py`: `ModelClient` Protocol (architecture.md §6).
-- `AnthropicModelClient`: forced tool-use call (`tool_choice={"type": "tool", "name": "submit_answer"}`) built from the `NutritionAnswer` schema.
-- Validation step: `NutritionAnswer.model_validate(raw_tool_input)`; on `ValidationError`, raise a typed exception — no prose fallback, no manual extraction.
+- `GroqModelClient`: structured-output call against Groq's chat completions API (`response_format={"type": "json_schema", "json_schema": {"strict": True, "schema": ...}}`) on model `openai/gpt-oss-120b`, built from the `NutritionAnswer` schema. Groq's strict mode uses constrained decoding to guarantee schema-valid JSON.
+- Validation step: `json.loads(response.choices[0].message.content)` then `NutritionAnswer.model_validate(...)`; on invalid JSON or `ValidationError`, raise a typed exception — no prose fallback, no manual extraction.
 - Draft `prompts/system_prompt.md` v1 (purpose, response behavior, claim representation, uncertainty language, safety-boundary text) per architecture.md §9.1. This is a first draft only — regression testing happens in Phase 5.
-- Manual smoke test: call the real Anthropic API with a handful of nutrition questions, confirm structured output round-trips.
+- Manual smoke test: call the real Groq API with a handful of nutrition questions, confirm structured output round-trips.
 
 **Exit criteria**
 - [ ] Model calls only happen from backend code; API key never referenced in `frontend/`.
@@ -101,7 +101,7 @@ This plan sequences the work described in [problemStatement.md](./problemStateme
 - `SourcesPanel`: presentational-only stub, always empty state, isolated as its own component.
 - `RefusalNotice`: visually distinct rendering for `{type: "refused"}` responses.
 - `conversation_id` persisted in local state (+ optional `localStorage`) so a refresh can reload via `GET /conversations/{id}`.
-- No Anthropic SDK or API key anywhere in `frontend/`.
+- No Groq SDK or API key anywhere in `frontend/`.
 
 **Exit criteria**
 - [ ] Full chat flow works locally against the Phase 4 backend: ask a question, see the answer, see a refusal styled differently from a normal answer, see a generic error on 5xx.
@@ -114,7 +114,7 @@ This plan sequences the work described in [problemStatement.md](./problemStateme
 
 **Goal:** the prototype accessible at a public URL, per architecture.md §12.
 
-- Railway: deploy FastAPI backend + managed Postgres plugin in the same project; set `ANTHROPIC_API_KEY` and `DATABASE_URL` as secrets; run migrations against the managed DB.
+- Railway: deploy FastAPI backend + managed Postgres plugin in the same project; set `GROQ_API_KEY` and `DATABASE_URL` as secrets; run migrations against the managed DB.
 - Vercel: deploy `frontend/`, set `NEXT_PUBLIC_API_BASE_URL` to the Railway backend URL.
 - Update backend CORS to the live Vercel origin.
 - Smoke test the full flow (answer, refusal, reload) against the deployed URLs, not just localhost.

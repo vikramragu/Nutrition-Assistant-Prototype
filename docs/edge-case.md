@@ -6,7 +6,7 @@ Corner scenarios to account for during implementation of [implementation-plan.md
 
 ## Phase 0 — Project Scaffolding & Environments
 
-- **Missing/empty env vars at boot.** `ANTHROPIC_API_KEY` or `DATABASE_URL` unset → backend should fail fast at startup with a clear error, not fail lazily on the first request.
+- **Missing/empty env vars at boot.** `GROQ_API_KEY` or `DATABASE_URL` unset → backend should fail fast at startup with a clear error, not fail lazily on the first request.
 - **CORS misconfiguration.** Frontend origin not yet in the allowlist (e.g., after a Vercel preview URL changes) → requests fail with an opaque CORS error in the browser; document how to diagnose this vs. a real backend error.
 - **Local Postgres not running.** `docker-compose up` not started before backend boot → connection error should be distinguishable from an application bug.
 - **Port collisions.** Default FastAPI/Next.js ports already in use locally.
@@ -27,10 +27,10 @@ Corner scenarios to account for during implementation of [implementation-plan.md
 
 ## Phase 2 — Model Client & Structured Output Contract
 
-- **Model declines to use the forced tool.** Anthropic returns a response with no tool-use block at all (rare with forced `tool_choice`, but possible on API-level errors or model refusals) → must be treated as a validation/parse failure, same code path as a schema mismatch, not a silent empty answer.
-- **Tool input is valid JSON but wrong shape.** E.g., `claims` is an object instead of a list, or `source` is `""` instead of `null` — Pydantic validation should reject all of these uniformly; don't special-case "close enough" values.
+- **Model output isn't valid JSON at all.** Groq returns `response.choices[0].message.content` as non-JSON or truncated text (rare in strict mode, but possible on `max_tokens` truncation or a model that doesn't support strict mode) → must be treated as a validation/parse failure, same code path as a schema mismatch, not a silent empty answer.
+- **Output is valid JSON but wrong shape.** E.g., `claims` is an object instead of a list, or `source` is `""` instead of `null` — Pydantic validation should reject all of these uniformly; don't special-case "close enough" values.
 - **Model fabricates a non-null source anyway.** Directly relevant to the Core Rule — must be a hard schema validation failure (`Literal[None]` violation), not silently coerced to `null`.
-- **Anthropic API timeout / 5xx / rate limit (429).** Distinct failure mode from a validation failure — needs its own handling (retry policy or immediate error) and must not be logged as if it were a schema failure.
+- **Groq API timeout / 5xx / rate limit (429).** Distinct failure mode from a validation failure — needs its own handling (retry policy or immediate error) and must not be logged as if it were a schema failure.
 - **Extremely long conversation history.** History exceeds the model's context window — decide a truncation/summarization strategy (e.g., keep last N turns) before this becomes a hard failure in production.
 - **Empty or whitespace-only user message.** Reaches the model client at all? Should probably be rejected earlier (Phase 4 request validation) rather than sent to the model.
 - **Non-English or mixed-language input.** Not explicitly in scope, but decide whether this is silently answered, degraded, or out of scope for the prototype.
@@ -85,7 +85,7 @@ Corner scenarios to account for during implementation of [implementation-plan.md
 - **CORS origin mismatch after a Vercel redeploy.** Vercel preview deployments get new URLs; only the production origin is in the CORS allowlist by design — confirm preview URLs are expected to fail CORS (and that this is intentional, not a bug to chase).
 - **Migrations not run against the managed Railway Postgres before the backend starts serving traffic.** First deploy (or a deploy with a new migration) needs migrations applied before/with the release, not after — a race here causes 500s on the very first requests.
 - **Cold start latency.** Railway free/low tiers can sleep or cold-start — first request after idle may time out client-side even though the backend eventually responds; decide if this needs a loading-state affordance.
-- **Secrets accidentally exposed via `NEXT_PUBLIC_*` prefix.** A typo'd env var name on Vercel (e.g., `NEXT_PUBLIC_ANTHROPIC_API_KEY`) would ship a secret to the browser bundle — explicit deploy-checklist item, not just a one-time spot check.
+- **Secrets accidentally exposed via `NEXT_PUBLIC_*` prefix.** A typo'd env var name on Vercel (e.g., `NEXT_PUBLIC_GROQ_API_KEY`) would ship a secret to the browser bundle — explicit deploy-checklist item, not just a one-time spot check.
 - **Database connection pool exhaustion under concurrent users.** Not covered by a single smoke test — worth noting as a known gap for a prototype, not something Phase 6 needs to fully solve.
 
 ---
