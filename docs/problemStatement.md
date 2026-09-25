@@ -181,10 +181,7 @@ The final deployed application must be publicly accessible and usable without re
 
 ### Model
 
-Use either:
-
-- OpenAI API
-- Anthropic API
+Use the Groq API, model `openai/gpt-oss-120b`.
 
 Use the provider's structured-output capability rather than asking the model for prose and manually parsing it.
 
