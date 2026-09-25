@@ -2,7 +2,9 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
+ScopeCategory = Literal["calorie_target", "weight_target", "medical_advice"]
 
 
 class ClaimSchema(BaseModel):
@@ -49,3 +51,24 @@ class ConversationRead(BaseModel):
     messages: list[MessageRead] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ConversationCreateResponse(BaseModel):
+    id: uuid.UUID
+
+
+class ChatRequest(BaseModel):
+    conversation_id: uuid.UUID
+    message: str = Field(min_length=1)
+
+
+class ChatAnswerResponse(BaseModel):
+    type: Literal["answer"] = "answer"
+    answer: str
+    claims: list[ClaimSchema]
+
+
+class ChatRefusedResponse(BaseModel):
+    type: Literal["refused"] = "refused"
+    reason: ScopeCategory
+    message: str

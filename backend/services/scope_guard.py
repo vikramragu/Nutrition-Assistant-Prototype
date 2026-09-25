@@ -10,13 +10,10 @@ not this module's.
 """
 
 import re
-from typing import Literal
 
 from pydantic import BaseModel
 
-from db.schemas import NutritionAnswer
-
-ScopeCategory = Literal["calorie_target", "weight_target", "medical_advice"]
+from db.schemas import NutritionAnswer, ScopeCategory
 
 
 class ScopeVerdict(BaseModel):
