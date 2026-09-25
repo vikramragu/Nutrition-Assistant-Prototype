@@ -1,0 +1,59 @@
+.list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.empty {
+  padding: 24px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.bubble {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.assistant {
+  align-self: flex-start;
+  background: var(--panel-background);
+  border: 1px solid var(--border);
+}
+
+.assistant p {
+  margin: 0;
+}
+
+.error {
+  align-self: center;
+  background: var(--danger-background);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.claims {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.claims summary {
+  cursor: pointer;
+}
+
+.claims ul {
+  margin: 6px 0 0 18px;
+}

@@ -1,0 +1,21 @@
+.chatWindow {
+  display: flex;
+  flex-direction: column;
+  flex: 2;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--background);
+  min-height: 480px;
+}
+
+.status {
+  padding: 24px;
+  color: var(--muted);
+}
+
+.error {
+  padding: 24px;
+  color: var(--danger);
+}

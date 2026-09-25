@@ -1,0 +1,22 @@
+.notice {
+  align-self: center;
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--warning-background);
+  border: 1px solid var(--warning-border);
+  font-size: 0.9rem;
+}
+
+.badge {
+  display: inline-block;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 4px;
+}
+
+.notice p {
+  margin: 0;
+}
