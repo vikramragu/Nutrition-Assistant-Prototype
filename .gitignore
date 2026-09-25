@@ -1,0 +1,15 @@
+# Python (frontend/ has its own .gitignore for node_modules/.next/etc.)
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.venv/
+*.pyc
+
+# Env files
+.env
+backend/.env
+
+# OS
+.DS_Store
+
+# Eval run artifacts (generated, not source)
+eval/runs/
