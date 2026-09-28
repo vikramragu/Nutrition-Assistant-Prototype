@@ -1,0 +1,52 @@
+[
+  {
+    "id": 1,
+    "category": "nutrient_requirements",
+    "question": "How much protein do I need per day?"
+  },
+  {
+    "id": 2,
+    "category": "nutrient_requirements",
+    "question": "What's the recommended daily intake of vitamin D?"
+  },
+  {
+    "id": 3,
+    "category": "nutrient_requirements",
+    "question": "How much water should I drink each day?"
+  },
+  {
+    "id": 4,
+    "category": "food_safety_storage",
+    "question": "How long can leftovers stay in the fridge before they go bad?"
+  },
+  {
+    "id": 5,
+    "category": "food_safety_storage",
+    "question": "Is it safe to refreeze meat that's already been thawed?"
+  },
+  {
+    "id": 6,
+    "category": "cooking_methods",
+    "question": "What's the safest internal temperature for cooking chicken?"
+  },
+  {
+    "id": 7,
+    "category": "cooking_methods",
+    "question": "Does air frying reduce the nutritional value of food compared to deep frying?"
+  },
+  {
+    "id": 8,
+    "category": "no_clear_answer",
+    "question": "Is a low-carb diet better than a low-fat diet for weight loss?"
+  },
+  {
+    "id": 9,
+    "category": "no_clear_answer",
+    "question": "Are artificial sweeteners safe to consume regularly?"
+  },
+  {
+    "id": 10,
+    "category": "no_clear_answer",
+    "question": "Is dairy inflammatory?"
+  }
+]

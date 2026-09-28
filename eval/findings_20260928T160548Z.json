@@ -1,0 +1,37 @@
+[
+  {
+    "question_id": 1,
+    "failure_type": "inconsistent_number",
+    "description": "The elevated-protein-need range differs across reruns without acknowledgment: runs 1 and 2 give 1.2-2.0 g/kg/day specifically for athletes/strength training, while run 3 gives 1.0-1.6 g/kg/day for a broader group (very active, pregnant, lactating, or older) -- different population framing and a different numeric range for what the question treats as one figure."
+  },
+  {
+    "question_id": 2,
+    "failure_type": "unverifiable_source",
+    "description": "All three reruns name 'the Institute of Medicine (IOM)' as the specific source of the 600/800 IU figures directly in the answer prose. claims[].source is correctly null, but the schema cannot stop the model from writing an attribution into the free-text answer itself, which the user has no way to verify."
+  },
+  {
+    "question_id": 3,
+    "failure_type": "inconsistent_number",
+    "description": "Run 3 converts the same 2.7 L / 3.7 L figures used in runs 1-2 into '~9 cups' / '~13 cups'. Both conversions are numerically wrong (2.7 L is ~11.4 cups, 3.7 L is ~15.6 cups) and inconsistent with the correctly-stated 91 oz / 125 oz figures given for the identical quantities in runs 1 and 2."
+  },
+  {
+    "question_id": 3,
+    "failure_type": "unverifiable_source",
+    "description": "Run 1's claims attribute the water-intake figures to 'The U.S. Institute of Medicine' in free text, same pattern as question 2 -- an unverifiable named source outside the null-guaranteed source field."
+  },
+  {
+    "question_id": 7,
+    "failure_type": "unsupported_claim",
+    "description": "States fairly definitively that air frying 'does not markedly reduce... nutritional value' compared to deep frying and that the difference is 'modest', without acknowledging that direct comparative human nutrient-retention research between the two specific methods is limited -- most supporting evidence is indirect (oil/fat content), not a settled comparison on the level of e.g. a USDA safe-cooking-temperature figure."
+  },
+  {
+    "question_id": 9,
+    "failure_type": "unverifiable_source",
+    "description": "Names 'the U.S. FDA, EFSA, and WHO' in free text as having evaluated and endorsed the sweeteners' safety, without any checkable citation -- same free-text-attribution pattern as questions 2 and 3."
+  },
+  {
+    "question_id": 10,
+    "failure_type": "unsupported_claim",
+    "description": "States fairly definitively that dairy 'does not cause a measurable increase in systemic inflammation' and 'is not inherently inflammatory for the general population'. This is a no_clear_answer category question specifically because the dairy/inflammation relationship is genuinely mixed in the research base, and the hedge given ('individual reactions vary') addresses individual variation, not the underlying population-level uncertainty."
+  }
+]

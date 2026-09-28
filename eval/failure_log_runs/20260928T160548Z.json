@@ -1,0 +1,224 @@
+{
+  "run_id": "63286ae4-555e-4a50-a470-a993408ea5b8",
+  "timestamp": "20260928T160548Z",
+  "prompt_version": "61873b49a729",
+  "results": [
+    {
+      "id": 1,
+      "category": "nutrient_requirements",
+      "question": "How much protein do I need per day?",
+      "attempts": [
+        {
+          "outcome": "answer",
+          "answer": "Most healthy adults need about 0.8\u202fg of protein per kilogram of body weight each day. People who do regular intense exercise or strength training often aim for 1.2\u20132.0\u202fg/kg/day. Exact needs vary with age, activity level, health status, and personal goals, so individual requirements may differ.",
+          "claims": [
+            "The general recommendation for protein intake for healthy adults is about 0.8 grams per kilogram of body weight per day.",
+            "Higher protein intakes, such as 1.2\u20132.0 grams per kilogram per day, may be appropriate for athletes or people engaged in intense strength training.",
+            "Protein needs can vary based on age, activity level, health status, and goals, so individual requirements may differ."
+          ]
+        },
+        {
+          "outcome": "answer",
+          "answer": "For most healthy adults, the general guideline is about 0.8\u202fg of protein per kilogram of body weight each day; active athletes or people doing regular strength training often aim for roughly 1.2\u20132.0\u202fg/kg. Pregnant or lactating individuals typically need a modest extra amount, about 25\u202fg more than the standard adult recommendation. These ranges are averages and individual needs can vary based on age, activity level, and health status, so it\u2019s best to consider personal factors or consult a dietitian for tailored advice.",
+          "claims": [
+            "The Recommended Dietary Allowance (RDA) for protein for most healthy adults is 0.8 grams per kilogram of body weight per day.",
+            "People who engage in regular intense exercise or strength training often benefit from protein intakes of about 1.2 to 2.0 grams per kilogram of body weight per day.",
+            "Pregnant or lactating individuals may need slightly higher protein, generally an additional 25 grams per day above the standard RDA."
+          ]
+        },
+        {
+          "outcome": "answer",
+          "answer": "Most healthy adults need about 0.8\u202fg of protein per kilogram of body weight each day. For example, a 70\u2011kg (154\u2011lb) adult would aim for roughly 56\u202fg of protein. People who are very active, pregnant, lactating, or older often require more\u2014typically 1.0\u20131.6\u202fg per kilogram per day.",
+          "claims": [
+            "The Recommended Dietary Allowance (RDA) for protein for most healthy adults is 0.8 grams per kilogram of body weight per day.",
+            "Individuals who are highly active, pregnant, lactating, or older may benefit from higher protein intakes, often ranging from 1.0 to 1.6 grams per kilogram per day."
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "category": "nutrient_requirements",
+      "question": "What's the recommended daily intake of vitamin D?",
+      "attempts": [
+        {
+          "outcome": "answer",
+          "answer": "The Institute of Medicine (IOM) recommends 600\u202fIU (15\u202f\u00b5g) of vitamin\u202fD per day for adults up to age\u202f70, and 800\u202fIU (20\u202f\u00b5g) per day for adults over\u202f70. Individual needs can differ based on sun exposure, skin tone, age, and health conditions, so some people may require higher amounts.",
+          "claims": [
+            "The Institute of Medicine (IOM) recommends 600\u202fIU (15\u202f\u00b5g) of vitamin\u202fD per day for adults up to age\u202f70.",
+            "The Institute of Medicine (IOM) recommends 800\u202fIU (20\u202f\u00b5g) of vitamin\u202fD per day for adults over age\u202f70.",
+            "Individual vitamin\u202fD needs can differ based on sun exposure, skin tone, age, and health conditions, so some people may require higher amounts."
+          ]
+        },
+        {
+          "outcome": "answer",
+          "answer": "The Institute of Medicine (now the National Academy of Medicine) sets the RDA for vitamin\u202fD at 600\u202fIU (15\u202f\u00b5g) per day for most people aged\u202f1\u201370, and 800\u202fIU (20\u202f\u00b5g) per day for adults over\u202f70; infants 0\u201312\u202fmonths need 400\u202fIU (10\u202f\u00b5g) per day, and pregnant or lactating women follow the 600\u202fIU recommendation.",
+          "claims": [
+            "The Institute of Medicine (now the National Academy of Medicine) sets the RDA for vitamin\u202fD at 600\u202fIU (15\u202f\u00b5g) per day for most people aged\u202f1\u201370.",
+            "The RDA for vitamin\u202fD is 800\u202fIU (20\u202f\u00b5g) per day for adults over\u202f70.",
+            "Infants 0\u201312\u202fmonths need 400\u202fIU (10\u202f\u00b5g) per day of vitamin\u202fD.",
+            "Pregnant or lactating women follow the 600\u202fIU (15\u202f\u00b5g) per day vitamin\u202fD recommendation."
+          ]
+        },
+        {
+          "outcome": "answer",
+          "answer": "For most healthy adults, the U.S. Institute of Medicine recommends 600\u202fIU (15\u202f\u00b5g) of vitamin D each day; people older than 70\u202fyears are advised to get 800\u202fIU (20\u202f\u00b5g) daily. These amounts are intended to maintain adequate blood levels of 25\u2011hydroxyvitamin D for bone health.",
+          "claims": [
+            "The U.S. Institute of Medicine recommends a daily intake of 600\u202fIU (15\u202f\u00b5g) of vitamin D for adults up to age 70.",
+            "For adults older than 70, the recommendation is 800\u202fIU (20\u202f\u00b5g) of vitamin D per day."
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "category": "nutrient_requirements",
+      "question": "How much water should I drink each day?",
+      "attempts": [
+        {
+          "outcome": "answer",
+          "answer": "Adults generally need about 2.7\u202fL (\u2248\u202f91\u202foz) of water per day for women and about 3.7\u202fL (\u2248\u202f125\u202foz) for men, covering all beverages and food moisture. Your personal needs may be higher if you exercise, live in a hot climate, or are pregnant or breastfeeding.",
+          "claims": [
+            "The U.S. Institute of Medicine recommends a total water intake of about 2.7 liters per day for adult women.",
+            "The U.S. Institute of Medicine recommends a total water intake of about 3.7 liters per day for adult men.",
+            "These recommendations include water from all beverages and foods.",
+            "Individual water needs increase with higher physical activity, hot climates, pregnancy, or breastfeeding."
+          ]
+        },
+        {
+          "outcome": "answer",
+          "answer": "Generally, healthy adults are advised to aim for about 2.7\u202fL (91\u202foz) per day for women and 3.7\u202fL (125\u202foz) per day for men, counting all beverages and food moisture. Your personal needs may be higher if you exercise heavily, live in a hot climate, or have certain health conditions, so adjust accordingly.",
+          "claims": [
+            "Healthy adults are generally advised to consume about 2.7\u202fL (91\u202foz) of water per day for women.",
+            "Healthy adults are generally advised to consume about 3.7\u202fL (125\u202foz) of water per day for men.",
+            "Total water intake includes water from beverages and foods.",
+            "Individual water needs can vary based on factors such as activity level, climate, and health status."
+          ]
+        },
+        {
+          "outcome": "answer",
+          "answer": "Adult men generally aim for about 3.7\u202fL (\u224813 cups) of total water per day, while adult women aim for about 2.7\u202fL (\u22489 cups). Your personal needs may be higher if you\u2019re physically active, live in a hot climate, or have certain health conditions.",
+          "claims": [
+            "Adult men generally aim for about 3.7\u202fL (\u224813 cups) of total water per day.",
+            "Adult women generally aim for about 2.7\u202fL (\u22489 cups) of total water per day.",
+            "Individual water needs can be higher with increased physical activity, hot climates, or certain health conditions."
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "category": "food_safety_storage",
+      "question": "How long can leftovers stay in the fridge before they go bad?",
+      "attempts": [
+        {
+          "outcome": "answer",
+          "answer": "Cooked leftovers are generally safe in the refrigerator for 3\u20134 days; keep the fridge at 40\u202f\u00b0F (4\u202f\u00b0C) or lower and discard anything that smells off, looks discolored, or shows mold.",
+          "claims": [
+            "Cooked leftovers are generally safe in the refrigerator for 3\u20134 days.",
+            "The refrigerator should be kept at 40\u202f\u00b0F (4\u202f\u00b0C) or lower.",
+            "Discard leftovers that smell off, look discolored, or show mold because they are likely spoiled."
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "category": "food_safety_storage",
+      "question": "Is it safe to refreeze meat that's already been thawed?",
+      "attempts": [
+        {
+          "outcome": "answer",
+          "answer": "Yes, you can safely refreeze meat that was thawed in the refrigerator, though the texture may suffer a bit. If the meat was thawed using cold water or a microwave, it should be cooked before refreezing to prevent bacterial growth. Cooking the meat first and then freezing it is also safe.",
+          "claims": [
+            "Meat that has been thawed in the refrigerator can be safely refrozen without cooking.",
+            "Meat thawed using cold water or a microwave should be cooked before refreezing to avoid bacterial growth.",
+            "Refreezing meat may degrade texture and quality, but it remains safe if proper handling guidelines are followed."
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "category": "cooking_methods",
+      "question": "What's the safest internal temperature for cooking chicken?",
+      "attempts": [
+        {
+          "outcome": "answer",
+          "answer": "The safest internal temperature for cooking chicken is 165\u202f\u00b0F (74\u202f\u00b0C).",
+          "claims": [
+            "The safest internal temperature for cooking chicken is 165\u202f\u00b0F (74\u202f\u00b0C)."
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "category": "cooking_methods",
+      "question": "Does air frying reduce the nutritional value of food compared to deep frying?",
+      "attempts": [
+        {
+          "outcome": "answer",
+          "answer": "Air frying does not markedly reduce the nutritional value of foods compared with deep frying; in fact, because it uses little or no oil, it usually adds less fat and can preserve more of the food\u2019s original nutrients. The core nutrients\u2014protein, carbohydrates, minerals\u2014remain largely the same, though any high\u2011heat cooking can degrade heat\u2011sensitive vitamins such as vitamin\u202fC. Overall, the differences in nutrient loss between the two methods are modest, with air\u2011fried foods often retaining slightly more nutrients because they avoid the oil oxidation that occurs in deep frying.",
+          "claims": [
+            "Air frying typically uses little or no oil, resulting in lower added fat compared to deep frying.",
+            "The intrinsic nutrient content of foods, such as protein, carbohydrates, and minerals, remains largely unchanged by the cooking method itself.",
+            "High\u2011heat cooking can degrade heat\u2011sensitive nutrients like vitamin C and some B vitamins, regardless of whether the food is air\u2011fried or deep\u2011fried.",
+            "Because air\u2011fried foods contain less oil, they may retain more of the food\u2019s original nutrients and avoid nutrient loss from oil oxidation that can occur in deep frying."
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "category": "no_clear_answer",
+      "question": "Is a low-carb diet better than a low-fat diet for weight loss?",
+      "attempts": [
+        {
+          "outcome": "answer",
+          "answer": "Both low\u2011carb and low\u2011fat diets can be effective for weight loss if they create a calorie deficit, but research shows low\u2011carb diets often produce a modest advantage in the first few months, while long\u2011term results are similar. The key factor is which eating pattern you can stick with over time.",
+          "claims": [
+            "Both low\u2011carbohydrate and low\u2011fat diets can lead to weight loss when they create a calorie deficit.",
+            "Short\u2011term studies often show slightly greater weight loss with low\u2011carbohydrate diets compared to low\u2011fat diets.",
+            "Long\u2011term weight loss outcomes are generally similar between low\u2011carbohydrate and low\u2011fat diets.",
+            "Individual adherence and personal preferences are important determinants of diet success."
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "category": "no_clear_answer",
+      "question": "Are artificial sweeteners safe to consume regularly?",
+      "attempts": [
+        {
+          "outcome": "answer",
+          "answer": "Most major artificial sweeteners (such as aspartame, sucralose, saccharin, and acesulfame\u2011K) have been evaluated by regulatory bodies like the U.S. FDA, EFSA, and WHO and are considered safe for the general population when consumed within their established acceptable daily intakes (ADIs). The evidence suggests no consistent link to cancer or major health problems at levels below the ADI, though some observational studies have raised questions about possible effects on gut microbiota and glucose metabolism, which remain unsettled. Regular consumption within the ADI is regarded as safe for most people, but individuals with phenylketonuria should avoid aspartame and anyone with specific health concerns should consult a qualified professional.",
+          "claims": [
+            "Major artificial sweeteners such as aspartame, sucralose, saccharin, and acesulfame\u2011K have been evaluated by regulatory bodies like the U.S. FDA, EFSA, and WHO and are considered safe for the general population when consumed within their established acceptable daily intakes (ADIs).",
+            "The evidence suggests no consistent link to cancer or major health problems at levels below the ADI.",
+            "Some observational studies have raised questions about possible effects on gut microbiota and glucose metabolism, which remain unsettled.",
+            "Individuals with phenylketonuria should avoid aspartame.",
+            "Regular consumption of artificial sweeteners within the ADI is regarded as safe for most people."
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "category": "no_clear_answer",
+      "question": "Is dairy inflammatory?",
+      "attempts": [
+        {
+          "outcome": "answer",
+          "answer": "Dairy can trigger inflammation in people who are lactose intolerant or allergic to milk proteins, but for most individuals without these sensitivities it does not cause a measurable increase in systemic inflammation and may even have neutral or modestly anti\u2011inflammatory effects. The inflammatory response depends on the type of dairy (fermented products like yogurt are generally less inflammatory) and the person\u2019s gut microbiota and overall diet. Overall, the evidence suggests dairy is not inherently inflammatory for the general population, though individual reactions vary.",
+          "claims": [
+            "Dairy can trigger inflammation in people who are lactose intolerant or allergic to milk proteins",
+            "For most individuals without these sensitivities, dairy consumption is not associated with increased systemic inflammation and may have neutral or modestly anti\u2011inflammatory effects",
+            "Fermented dairy products such as yogurt are generally less inflammatory than non\u2011fermented dairy"
+          ]
+        }
+      ]
+    }
+  ]
+}
