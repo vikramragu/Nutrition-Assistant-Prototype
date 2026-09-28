@@ -57,3 +57,9 @@ Mirrors the Phase 4/5 exit criteria, run against production instead of localhost
 ## 5. Known risk to check on first deploy
 
 Nixpacks' Python version auto-detection hasn't been verified against Railway specifically for this project (local dev runs Python 3.14, which is very new). If the build fails or resolves a different Python version than expected, check Railway's build logs first — this is the one part of the Railway config that wasn't validated locally before this guide was written.
+
+---
+
+## 6. Known risk: Vercel Framework Preset
+
+If the Vercel project's **Framework Preset** (Settings → Build and Deployment) is ever set to "Other" instead of "Next.js", the build succeeds (Next.js builds fine on its own) but the deployment serves a platform-level 404 on every route — Vercel falls back to serving static files from `public`/repo root instead of running the Next.js output. Each deployment pins its own build config at deploy time, so fixing the Project Setting alone doesn't retroactively fix an already-built deployment; a fresh deployment is required afterward.
