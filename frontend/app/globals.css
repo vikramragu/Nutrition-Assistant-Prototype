@@ -14,8 +14,6 @@
   --warning-background: #fffbeb;
   --warning-border: #fde68a;
   --trunk: #8a5a3a;
-  --fruit: #d1495b;
-  --butterfly: #d98bb3;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -35,8 +33,6 @@
     --warning-background: #2a2414;
     --warning-border: #4a3f1a;
     --trunk: #6b4530;
-    --fruit: #e07a8b;
-    --butterfly: #c977a3;
   }
 }
 
