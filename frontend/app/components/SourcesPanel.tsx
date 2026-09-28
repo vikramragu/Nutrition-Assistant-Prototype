@@ -1,3 +1,4 @@
+import LeafIcon from "./LeafIcon";
 import styles from "./SourcesPanel.module.css";
 
 // Kept as its own component -- purely presentational -- so the future
@@ -14,13 +15,16 @@ type SourcesPanelProps = {
 export default function SourcesPanel({ sources }: SourcesPanelProps) {
   return (
     <aside className={styles.panel}>
-      <h2 className={styles.heading}>Sources</h2>
+      <h2 className={styles.heading}>
+        <LeafIcon size={16} />
+        Sources
+      </h2>
       {sources.length === 0 ? (
         <p className={styles.empty}>No sources yet — coming in a future milestone.</p>
       ) : (
         <ul className={styles.list}>
           {sources.map((source) => (
-            <li key={source.url}>
+            <li key={source.url} className={styles.listItem}>
               <a href={source.url}>{source.title}</a>
             </li>
           ))}

@@ -14,6 +14,12 @@
   font: inherit;
   background: var(--background);
   color: var(--foreground);
+  transition: border-color 0.15s ease;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 .textarea:disabled {
@@ -28,6 +34,11 @@
   color: var(--accent-foreground);
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--accent-hover);
 }
 
 .button:disabled {

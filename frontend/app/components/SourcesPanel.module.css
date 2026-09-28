@@ -10,6 +10,9 @@
 }
 
 .heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 1rem;
   font-weight: 600;
   margin-bottom: 8px;
@@ -23,6 +26,15 @@
 .list {
   margin: 0;
   padding-left: 18px;
+}
+
+.listItem {
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.listItem:hover {
+  background: var(--accent-tint);
 }
 
 @media (max-width: 720px) {
