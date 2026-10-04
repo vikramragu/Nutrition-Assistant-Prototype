@@ -536,6 +536,55 @@ against the rows already stored, so the skip means what it claims. No migration:
 computed from the `chunks` table at seed time. Re-seeding now reports
 `same source, re-chunked -- replacing` and is idempotent on the run after.
 
+### 9.8 Destroyed tables, and the corpus quarantine
+
+Also found in Phase 2.4, by the same means: reading the data.
+
+A PDF stores positioned text boxes, not rows and columns. When a table is extracted, its labels and
+its numbers arrive as separate runs of text with nothing linking them. The Irish food pyramid's
+calorie table became:
+
+```text
+Active Child Teenager Adult Adult Inactive Teenager Adult Adult ...
+Active 2000kcal Inactive 1800kcal Active 2500kcal Inactive 2000kcal
+```
+
+Four labels, four values, no way to pair them. On the page the labels sit at y=265 and y=356 and the
+values at y=529; the relationship was only ever column alignment.
+
+**This is not a parsing bug and not a chunking bug.** The information was never in the text. It is
+also unlike §9.5: that defect was recoverable because the right order was present in the
+coordinates. Here there is nothing to recover — reconstructing the grid means inferring which header
+owns which cell, and `find_tables()` was already shown unreliable on this corpus. Half-right would
+be worse than nothing: a confidently cited calorie figure attached to the wrong age group.
+
+**Measured risk, not assumed.** The chunk scored above the relevance floor on every calorie question
+tried, ranking **1st** for *"calories for an inactive adult over 51?"* (0.676), and Phase 1's scope
+guard blocks none of those questions. The path from an ordinary question to a wrong number under a
+valid-looking citation was open end to end.
+
+**Resolution: a reviewed quarantine list in `corpus.yaml`**, three passages, each with its reason.
+Applied in `chunk._quarantine_reason`; `verify_quarantine_rules` raises if a rule stops matching,
+because a stale rule means the passage is back in the index while the manifest claims otherwise.
+
+Two findings from doing it:
+
+- **Excluding one half of a table made things worse.** With only the label row quarantined, the
+  orphaned values re-chunked under the heading *"Average daily calorie needs for all foods and
+  drinks for adults"* — which reads as authoritative — and scored **higher** than before, 0.719.
+- **No automatic rule works.** Repetition ratio, prose density and function-word density were each
+  measured across all 105 chunks; none separates a destroyed table from ordinary bulleted guidance.
+  A detector aggressive enough to catch these would drop real advice.
+
+**Reviewed and deliberately kept:** the ICMR "My Plate" grams-per-day table, whose *values* did not
+survive extraction at all. With no numbers present there is nothing to misattribute — a model asked
+for grams finds none and declines, which is the safe failure. It also carries a genuine standalone
+sentence (sugar restricted to 25–30 g/day).
+
+**Cost:** 105 → 103 chunks, and the retrieval floor's separation band narrowed from 0.07 to 0.02
+wide. The corpus can no longer state a weekly alcohol limit at all. Both are accepted:
+see [retrieval-calibration.md §4](./retrieval-calibration.md).
+
 ### 9.7 Known limitation carried forward
 
 `claims.chunk_id` is nullable, which is what keeps Phase 1 rows valid. Nothing yet enforces that a

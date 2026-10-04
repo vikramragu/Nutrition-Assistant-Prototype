@@ -38,7 +38,7 @@ Two consequences that look odd until you know the reason:
 | **Embeddings run locally** — `fastembed` 0.8.1, ONNX | Groq has **no embeddings endpoint**. Local keeps the project single-provider instead of adding a second vendor just for vectors |
 | **`BAAI/bge-small-en-v1.5`, 384 dims** | User's suggestion, and a good fit: small, strong on retrieval, cheap enough to embed a query per turn (~4 ms) |
 | **pgvector, not Chroma/Pinecone** | Railway Postgres already exists. A separate vector store would add an operational dependency for 105 rows |
-| **No ANN index** (no IVFFlat/HNSW) | At ~105 chunks an exact cosine scan is single-digit ms. ANN would add tuning surface and *approximate* recall to a solved problem. Revisit above ~50k chunks |
+| **No ANN index** (no IVFFlat/HNSW) | At ~103 chunks an exact cosine scan is single-digit ms. ANN would add tuning surface and *approximate* recall to a solved problem. Revisit above ~50k chunks |
 | **Snapshot is gzipped JSONL, not Parquet** | The snapshot is committed so corpus changes are **reviewable git diffs**. Parquet is binary. A Parquet export exists separately for grid viewers and is gitignored |
 | **Ingestion is offline, not at boot** | Production never parses a PDF or reaches a publisher's site. `Procfile` runs migrations + uvicorn, nothing else |
 
@@ -55,7 +55,7 @@ exists to catch even a typo in the prefix string.
 
 ## 3. The corpus — frozen, do not change casually
 
-Seven documents, 50 PDF pages + 1 web page, 105 chunks. Ceiling of 23 pages per document (started
+Seven documents, 50 PDF pages + 1 web page, **103 chunks** (105 chunked, 3 quarantined — §5c). Ceiling of 23 pages per document (started
 at 15; raised once for FSANZ).
 
 | id | publisher | year | type |
@@ -207,6 +207,72 @@ what it says.
   input comes from before blaming the thing that consumes it.
 - **"Idempotent" has to mean idempotent with respect to the thing you actually changed.**
 
+## 5c. Tables that extraction destroys, and the corpus quarantine
+
+Found right after §5b, the same way: reading the data. Different problem, different answer.
+
+### What goes wrong
+
+A PDF stores positioned text boxes, not rows and columns. Extract a table and the labels and the
+numbers come out as separate runs of text with nothing linking them. The Irish food pyramid's
+calorie table became:
+
+```text
+Active Child Teenager Adult Adult Inactive Teenager Adult Adult …
+Active 2000kcal Inactive 1800kcal Active 2500kcal Inactive 2000kcal
+```
+
+Four labels, four values, no way to pair them. On the page the labels sit at y=265/356 and the
+values at y=529 — the relationship was only ever column alignment.
+
+**This is not §5b again.** That defect was *recoverable*: the right order was sitting in the
+coordinates and only needed sorting. Here the information was never in the text. Reconstructing the
+grid means inferring which header owns which cell, and half-right is worse than nothing — a
+confidently cited calorie figure attached to the wrong age group.
+
+### Why it had to be acted on
+
+Measured, not assumed: the chunk cleared the relevance floor on **every** calorie question tried and
+ranked **1st** for *"calories for an inactive adult over 51?"* (0.676). Phase 1's scope guard blocks
+none of those questions. The path from an ordinary question to a wrong number under a
+legitimate-looking citation was open end to end. That is `inconsistent_number`, one of the five
+named failure modes this milestone exists to prevent.
+
+### The fix: a reviewed list, not a rule
+
+`corpus.yaml` → `quarantine`, three passages, each with its reason. Applied in
+`chunk._quarantine_reason`. `verify_quarantine_rules` **raises** if a rule stops matching, because a
+stale rule means the passage is silently back in the index while the manifest claims otherwise.
+
+A manifest list rather than a detector because three text statistics were measured across all 105
+chunks — repetition ratio, prose density, function-word density — and **none separates a destroyed
+table from ordinary bulleted guidance**. Anything aggressive enough to catch these would also drop
+real advice. So the judgement sits in data, reviewable and diffable, not hidden in a threshold.
+
+**The test for exclusion is not "is this untidy".** It is: *does this passage pair a number with a
+label it may not belong to?*
+
+### Three things learned doing it
+
+1. **Excluding half a table made it worse.** With only the label row quarantined, the orphaned
+   values re-chunked under the heading *"Average daily calorie needs for all foods and drinks for
+   adults"* — which reads as authoritative — and scored **higher** than before, 0.719. Both halves
+   had to go.
+2. **A gutted table is safer than a scrambled one.** The ICMR "My Plate" grams table was reviewed
+   and **kept**: its values did not survive extraction at all, so there is no number to
+   misattribute. A model asked for grams finds none and declines — the safe failure.
+3. **Removing a figure does not remove the topic.** Questions about the excluded figures now land
+   on neighbouring chunks from the same pages, scoring 0.66–0.68. This narrowed the floor's
+   separation band from 0.07 to **0.02** wide. The corpus can no longer state a weekly alcohol
+   limit at all, and that is the intended outcome — a refusal beats a 50/50 chance of giving a
+   woman a man's limit.
+
+### Consequence for the design
+
+**Gate 2 is now load-bearing, not a backstop.** The floor was comfortable at a 0.07 band; at 0.02 it
+is one awkward question from failing either way. Architecture §7.3 always made the model's
+`answers_question` the stronger gate — it is now carrying the weight it was designed for.
+
 ## 6. Other defects found by running it — all fixed
 
 | Defect | Why it mattered |
@@ -243,24 +309,31 @@ what it says.
 ## 8. Retrieval, as measured in Phase 2.4
 
 Full record: [retrieval-calibration.md](../retrieval-calibration.md). Labelled set:
-`eval/retrieval_set.json` (20 in-corpus + 6 out-of-corpus). Re-run with
+`eval/retrieval_set.json` (20 in-corpus + 8 out-of-corpus). Re-run with
 `backend/.venv/bin/python eval/run_retrieval_eval.py` — no Groq credits.
 
 | k | 1 | 3 | 5 | **8** | 10 |
 |---|---|---|---|---|---|
-| recall | 0.500 | 0.825 | 0.917 | **0.975** | 0.975 |
+| recall | 0.575 | 0.825 | 0.917 | **0.975** | 0.975 |
 
-**`floor = 0.65`, `k = 8`.** In-corpus top-1 spans 0.709–0.873; out-of-corpus 0.440–0.627. Anything
-in 0.63–0.70 separates the set perfectly.
+**`floor = 0.69`, `k = 8`.** In-corpus top-1 spans 0.709–0.873; out-of-corpus 0.440–0.680. Only
+0.68–0.70 separates the set — a band just **0.02 wide**, narrowed from 0.07 by the §5c quarantine.
 
-0.65 rather than the 0.665 midpoint because architecture §7.3 makes the model's `answers_question`
-the stronger gate, so the floor should fail toward a wasted model call, never toward a wrong
-refusal — a refusal is terminal. Not 0.63 either: its margin over the worst out-of-corpus score is
-0.003, which is perfect on this sample and worth nothing on the next question.
+0.69 is the midpoint, giving 0.010 below and 0.019 above. Not 0.68 — the usual rule (gate 2 is
+stronger, so fail toward a wasted model call rather than a wrong refusal) argues for the bottom of
+the band, but its margin over the worst negative is 0.0004: a coincidence, not a margin.
 
-Latency: median 9.9 ms. This is what retires the ANN-index question for now.
+**Gate 2 is now load-bearing.** At a 0.02 band the floor is one awkward question from failing
+either way. q27 and q28 are in the set to keep that visible.
 
-**What it does not establish:** the labels are unreviewed, 26 questions is a calibration not a
+Latency: median 8.7 ms. This is what retires the ANN-index question for now.
+
+**Labels are keyed by `slug:ordinal`, which shifts when a document is re-chunked.** This bit once:
+the §5c quarantine renumbered every later Irish chunk and six labels silently pointed at the wrong
+text, dropping recall 0.975 → 0.800 in a way that looked exactly like a real regression.
+`run_retrieval_eval.py` now refuses to run if a labelled key no longer exists.
+
+**What it does not establish:** the labels are unreviewed, 28 questions is a calibration not a
 guarantee, and nothing here tests *answering* — that is Phase 2.5, and this phase exists so that
 failure can be attributed cleanly when it happens.
 
@@ -281,7 +354,7 @@ docs/features/rag-sourced-claims/
   architecture.md           16 sections; §1 principle, §5 parsing, §6 data model, §7 retrieval
   implementation-plan.md    phases 2.0 – 2.10 with exit criteria
   ingestion-report.md       evidence: §1–6 = 2.1, §7 = 2.2, §9 = 2.3 (§9.5–9.6 = the block-order fix)
-  retrieval-calibration.md  evidence: 2.4 — recall@k, the floor sweep, why 0.65
+  retrieval-calibration.md  evidence: 2.4 — recall@k, the floor sweep, the quarantine, why 0.69
   temp/context-handoff.md   this file
 
 backend/corpus/
@@ -300,7 +373,7 @@ python -m corpus.show                    # inspect chunks
 python -m corpus.ingest --use-cache --snapshot corpus/corpus_snapshot.jsonl.gz
 python -m corpus.seed                    # idempotent
 python -m alembic current                # expect b1c7e4a92f08 (head)
-pytest -q                                # 59 passing
+pytest -q                                # 68 passing
 
 cd .. && backend/.venv/bin/python eval/run_retrieval_eval.py   # recall@k + floor sweep
 ```

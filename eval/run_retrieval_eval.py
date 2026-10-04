@@ -29,6 +29,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 BACKEND_ROOT = REPO_ROOT / "backend"
 sys.path.insert(0, str(BACKEND_ROOT))
 
+from sqlalchemy import select  # noqa: E402
+
 from db.session import SessionLocal  # noqa: E402
 from services.embeddings import get_embedding_client  # noqa: E402
 from services.retriever import search  # noqa: E402
@@ -37,6 +39,34 @@ SET_PATH = Path(__file__).resolve().parent / "retrieval_set.json"
 K_VALUES = (1, 3, 5, 8, 10)
 MAX_K = max(K_VALUES)
 FLOOR_GRID = [round(0.30 + 0.01 * i, 2) for i in range(46)]  # 0.30 .. 0.75
+
+
+def _assert_labels_resolve(session, questions: list[dict]) -> None:
+    """Every labelled chunk_key must exist in the database. Refuse to measure otherwise.
+
+    `chunk_key` is `slug:ordinal`, so ordinals shift whenever a document gains or loses
+    a chunk. On 2026-10-05 quarantining two passages renumbered every later chunk in the
+    Irish document, and six labels silently began pointing at the wrong text. Recall fell
+    0.975 -> 0.800 and looked exactly like a real regression.
+
+    A dangling label can only ever understate recall, which is the direction that wastes
+    the most time, so this is a hard failure rather than a warning.
+    """
+    from db.models import Chunk  # noqa: PLC0415 -- keeps the import local to the check
+
+    labelled = {key for q in questions for key in q.get("relevant", [])}
+    if not labelled:
+        return
+    known = set(session.scalars(select(Chunk.chunk_key).where(Chunk.chunk_key.in_(labelled))))
+    missing = sorted(labelled - known)
+    if missing:
+        raise SystemExit(
+            "Labelled chunks no longer exist:\n  "
+            + "\n  ".join(missing)
+            + "\n\nThe corpus was re-chunked and ordinals shifted. Re-map these against "
+            "the current corpus (`python -m corpus.show --doc <slug>`) rather than "
+            "deleting them -- the questions are still valid."
+        )
 
 
 def _recall_at_k(hits: list[str], relevant: set[str], k: int) -> float:
@@ -65,6 +95,7 @@ def main(argv: list[str] | None = None) -> int:
     results = []
 
     with SessionLocal() as session:
+        _assert_labels_resolve(session, questions)
         for question in questions:
             started = time.perf_counter()
             hits = search(session, question["question"], k=MAX_K, client=client)

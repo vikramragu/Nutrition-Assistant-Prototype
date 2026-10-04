@@ -195,7 +195,7 @@ def test_calibrated_defaults_match_the_recorded_measurement():
     If someone changes these, this test fails and points at the document that has to be
     re-measured -- the floor is the refusal, not a tuning knob.
     """
-    assert DEFAULT_FLOOR == 0.65
+    assert DEFAULT_FLOOR == 0.69
     assert DEFAULT_K == 8
 
 

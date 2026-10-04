@@ -409,7 +409,7 @@ class RetrievedChunk(BaseModel):
     score: float
 
 def retrieve(
-    query: str, *, k: int = 8, floor: float = 0.65, document_id: uuid.UUID | None = None
+    query: str, *, k: int = 8, floor: float = 0.69, document_id: uuid.UUID | None = None
 ) -> list[RetrievedChunk]: ...
 ```
 
@@ -418,7 +418,7 @@ similarity over `chunks.embedding`, exact scan, `ORDER BY embedding <=> :q LIMIT
 `document_id` when the caller scopes to one document. That filter is the brief's second retrieval
 mode, and it is what the §7.2 per-document loop uses.
 
-`k = 8` and `floor = 0.65` are **measured**, not assumed — Phase 2.4 calibrated both against a
+`k = 8` and `floor = 0.69` are **measured**, not assumed — Phase 2.4 calibrated both against a
 labelled set. See §7.3 and [retrieval-calibration.md](./retrieval-calibration.md).
 
 ### 7.2 Per-document answering — the core structural decision
@@ -473,26 +473,28 @@ Either path returns:
 documents that scored above the floor. The brief requires naming what was searched, and a user cannot
 judge the gap from a list that silently omits the documents that scored zero.
 
-**✅ RESOLVED (Phase 2.4, 2026-10-05) — `floor = 0.65`, measured.** Full sweep and reasoning in
+**✅ RESOLVED (Phase 2.4, 2026-10-05) — `floor = 0.69`, measured.** Full sweep and reasoning in
 [retrieval-calibration.md](./retrieval-calibration.md); the short version:
 
 | | |
 |---|---|
 | in-corpus top-1 scores | 0.709 – 0.873 (20 questions) |
-| out-of-corpus top-1 scores | 0.440 – 0.627 (6 questions) |
-| floors that separate the set perfectly | 0.63 – 0.70 |
-| chosen | **0.65** |
+| out-of-corpus top-1 scores | 0.440 – 0.680 (8 questions) |
+| floors that separate the set | 0.68 – 0.70 |
+| chosen | **0.69** (midpoint) |
 
-0.65 rather than the midpoint because gate 2 is deliberately the stronger of the two, which fixes
-the direction a mis-set floor should fail in: toward a wasted model call, never toward a wrong
-refusal. A refusal is terminal — no generation happens and the user is told the corpus does not
-cover something it does. So the floor sits with the larger margin (0.059) on the in-corpus side and
-the smaller (0.023) on the out-of-corpus side.
+The midpoint, because the band is only **0.02 wide** and neither edge offers a usable margin. 0.68
+would follow the usual rule — gate 2 is the stronger gate, so a mis-set floor should fail toward a
+wasted model call rather than a wrong refusal — but its margin over the worst negative is 0.0004, a
+coincidence rather than a margin. 0.69 gives 0.010 below and 0.019 above.
 
-Not 0.63, the lowest floor that also separates the set, because its margin over the worst
-out-of-corpus score is 0.003 — perfect on this sample and worth nothing on the next question.
+**The band narrowed from 0.07 to 0.02** when three destroyed tables were quarantined out of the
+corpus. Removing the figures did not remove the topics, so questions about them now land on
+neighbouring chunks scoring 0.66–0.68. Consequence for this design: **gate 2 is now load-bearing
+rather than a backstop**, which is the role §7.3 always assigned it.
 
 Measured at `k = 8`: recall@8 = 0.975, identical at k = 10, so the curve is flat past 8.
+Latency median 8.7 ms.
 
 ---
 

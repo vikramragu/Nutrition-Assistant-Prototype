@@ -17,13 +17,23 @@ No generation call, no Groq credits. One embedding per question, reused across t
 
 ## 1. The labelled set
 
-[`eval/retrieval_set.json`](../../../eval/retrieval_set.json) — 26 questions: **20 in-corpus** with
-hand-labelled relevant `chunk_key`s, **6 out-of-corpus** with deliberately empty labels.
+[`eval/retrieval_set.json`](../../../eval/retrieval_set.json) — 28 questions: **20 in-corpus** with
+hand-labelled relevant `chunk_key`s, **8 out-of-corpus** with deliberately empty labels.
 
 The out-of-corpus questions are not filler. They are the only way to measure where the floor has to
 sit: the best score any of them reaches is the number the floor must clear. They are spread on
 purpose from the obviously unrelated ("capital of France") to the adjacent-but-absent ("recommended
 dose of metformin"), because a floor tuned only against easy negatives is not calibrated at all.
+
+**q27 and q28 are the hardest negatives, and the most important.** Both ask for figures the corpus
+*used to contain* — weekly alcohol limits, calories by age — in tables now quarantined because
+extraction destroyed them (§4). The surrounding text is still there and still topically right, so
+these are the two questions most likely to defeat the floor. They exist to make that visible rather
+than to be passed.
+
+**q10 was changed**, not deleted: it asked for the weekly alcohol limit, which the corpus no longer
+states. It now asks who should avoid alcohol entirely, and the original wording moved to q27 as a
+negative. The change is recorded in the file's `label_note`.
 
 **Labelling rule:** a chunk is relevant if it *contains the guidance that answers the question* —
 not if it is merely on the same topic. A chunk that mentions sugar is not relevant to "how much free
@@ -69,94 +79,147 @@ answer exists *only* in statutory phrasing.
 
 | | min | median | max |
 |---|---|---|---|
-| in-corpus top-1 | **0.709** | 0.823 | 0.873 |
-| out-of-corpus top-1 | 0.440 | 0.487 | **0.627** |
+| in-corpus top-1 | **0.7087** | 0.823 | 0.873 |
+| out-of-corpus top-1 | 0.440 | 0.527 | **0.6796** |
 
-**Gap: +0.081.** The classes do not overlap, which is why a single scalar floor is a defensible
-mechanism here at all.
+**Gap: +0.029.** The classes still do not overlap, but the margin is **a third of what it was**
+before the corpus quarantine — see §4.
 
 The out-of-corpus questions, worst first:
 
-| score | question | what it was drawn to |
+| score | question | drawn to |
 |---|---|---|
-| 0.627 | recommended dose of metformin for type 2 diabetes | WHO § Sugars |
+| **0.680** | standard drinks a week, lower risk limit for women | Irish pyramid § Fluids |
+| **0.658** | calories for an inactive adult over 51 | Irish pyramid § Serving guide |
+| 0.627 | recommended dose of metformin | WHO § Sugars |
 | 0.565 | how should I train for my first marathon | Irish pyramid § Get active |
 | 0.490 | which programming language should I learn first | DGA § Introducing Food to Infants |
 | 0.484 | how do I fix a puncture in a bicycle tyre | FSSAI § Procedures for handling |
 | 0.457 | electric car sales in Norway | ICMR § Outcomes |
 | 0.440 | what is the capital of France | FSSAI § Regulations |
 
-The metformin question at 0.627 is the one that sets the floor, and it is instructive: a diabetes
-medication question lands near a chunk about sugar intake. It is also the case least likely to reach
-retrieval in production — Phase 1's scope guard rejects medical-advice questions before this point —
-so the floor is calibrated against a question that is already double-covered.
+The top two are the interesting ones, and they are new.
 
-## 4. The floor sweep
+## 4. The corpus quarantine, and what it cost the floor
+
+Three passages were removed from the index on 2026-10-05 (`corpus.yaml` → `quarantine`). All three
+are tables that PDF extraction destroyed: a PDF stores positioned text boxes, not rows and columns,
+so a table's labels and its numbers arrive as separate runs of text with nothing linking them.
+
+The excluded passages and why:
+
+| passage | what went wrong |
+|---|---|
+| Irish § calorie-by-age, **label row** | Labels at y=265/356, values at y=529, in separate boxes. Four labels, four values, no way to pair them |
+| Irish § calorie-by-age, **value row** | The other half of the same table |
+| Irish § weekly alcohol limits | Men 17 drinks/170 g, Women 11/110 g. Pairing is positional only; a model has even odds of swapping the sexes on a health figure |
+
+The ICMR "My Plate" grams-per-day table was reviewed and **kept**: its values did not survive
+extraction at all, so there is no number to misattribute. A model asked for grams finds none and
+declines — the safe failure.
+
+### Excluding one half of a table made it worse
+
+Quarantining only the label row left the **values** to re-chunk under the heading *"Average daily
+calorie needs for all foods and drinks for adults"* — which reads as authoritative — and its score
+for the calorie question went **up**, to 0.719. Both halves had to go. A partial exclusion is not a
+partial fix.
+
+### Why this is a manifest list and not a rule
+
+Three text statistics were measured across all 105 chunks looking for an automatic detector:
+
+| signal | result |
+|---|---|
+| repetition ratio | No separation — FSANZ prose repeats "temperature/food" as heavily as a table repeats its headers |
+| prose density | Catches the tables, but also flags legitimate bullet lists (WHO Five Keys at 0.00) |
+| function-word density | No separation — dense DGA bullet prose sits in the same 0.20–0.29 range |
+
+None distinguishes a destroyed table from ordinary bulleted guidance. A detector aggressive enough
+to catch these would drop real advice, which is the worse error. So the judgement is recorded as
+data, in the manifest, with a reason per entry — reviewable and diffable, not hidden in a threshold.
+`verify_quarantine_rules` raises if a rule stops matching, because a stale rule means the passage is
+back in the index while the manifest still claims it is excluded.
+
+### The cost
+
+Removing the figures did not remove the *topics*. Questions about them now land on neighbouring
+chunks from the same pages, which score 0.66–0.68 — far higher than any other negative. The
+separation band narrowed from **0.63–0.70 (0.07 wide)** to **0.68–0.70 (0.02 wide)**.
+
+That is the honest trade: the corpus can no longer produce a wrong calorie or alcohol figure, and in
+exchange the floor became a much weaker discriminator.
+
+## 5. The floor sweep
 
 | floor | in-corpus answered | out-of-corpus refused | label recall @8 |
 |---|---|---|---|
-| 0.30 | 20/20 | 0/6 | 0.975 |
-| 0.50 | 20/20 | 4/6 | 0.975 |
-| 0.60 | 20/20 | 5/6 | 0.975 |
-| 0.63 | 20/20 | **6/6** | 0.975 |
-| **0.65** | **20/20** | **6/6** | **0.958** |
-| 0.68 | 20/20 | 6/6 | 0.958 |
-| 0.70 | 20/20 | 6/6 | 0.892 |
-| 0.71 | 19/20 | 6/6 | 0.842 |
-| 0.75 | 15/20 | 6/6 | 0.667 |
+| 0.50 | 20/20 | 4/8 | 0.975 |
+| 0.60 | 20/20 | 5/8 | 0.975 |
+| 0.65 | 20/20 | 6/8 | 0.958 |
+| 0.68 | 20/20 | **8/8** | 0.958 |
+| **0.69** | **20/20** | **8/8** | **0.942** |
+| 0.70 | 20/20 | 8/8 | 0.917 |
+| 0.75 | 16/20 | 8/8 | 0.717 |
 
-**Every floor in 0.63 – 0.70 separates the set perfectly.** The decision is therefore not *whether*
-to separate but *where inside that band to sit*, and the two edges fail differently.
+## 6. The chosen floor: 0.69
 
-## 5. The chosen floor: 0.65
+**Not 0.68**, the bottom of the band, even though the usual rule — architecture.md §7.3 makes the
+model's `answers_question` the stronger gate, so a mis-set floor should fail toward a wasted
+generation call rather than a wrong refusal — argues for sitting low. Its margin over the worst
+negative is **0.0004**. That is a coincidence, not a margin, and the same objection that ruled out
+0.63 in the previous calibration.
 
-**Not 0.63**, although it scores marginally better on label recall (0.975 vs 0.958). Its margin over
-the highest out-of-corpus score is **0.003** — arithmetically perfect on this set and worth nothing
-on the next question. A floor whose justification is "no counter-example in 26 samples" is a guess
-wearing a measurement's clothes.
+**0.69**, the midpoint, gives the only two real margins available:
 
-**Not 0.70**, the top of the band, and not 0.665, the exact midpoint. [architecture.md
-§7.3](./architecture.md) makes the model's `answers_question` verdict the *stronger* of the two
-gates, which fixes the direction a mis-set floor should fail in: toward a **wasted generation call**,
-never toward a wrong refusal. A refusal is terminal — no model call happens, and the user is told the
-corpus does not cover something it does cover. That asymmetry argues for sitting below the midpoint.
+- **0.010** over the worst out-of-corpus score (0.6796)
+- **0.019** under the worst in-corpus score (0.7087)
 
-**0.65** gives:
+Both are small. There is no comfortable choice inside a 0.02-wide band, and pretending otherwise
+would be the dishonest part.
 
-- **+0.023** over the worst out-of-corpus score (0.627)
-- **−0.059** under the worst in-corpus score (0.709) — the larger margin, on the side where being
-  wrong is cheaper
-- label recall **0.958**, costing one *supporting* chunk across twenty questions, no whole answer
+### What this means for the design
 
-## 6. Latency
+**Gate 2 is now load-bearing, not a backstop.** The floor was comfortable when the band was 0.07
+wide; at 0.02 it is one awkward question away from failing in either direction. The two questions
+that nearly defeat it — q27 and q28 — are in the labelled set precisely so that the next change to
+this corpus has to confront them.
 
-Median **9.9 ms**, max 74.1 ms, over 26 queries — embedding plus exact cosine scan, with the model
-loaded once outside the loop. The maximum is the first query, which pays ONNX warm-up.
+The design anticipated this: §7.3 always made the model's `answers_question` verdict the stronger
+gate. It is now carrying the weight it was designed for rather than the weight it was expected to.
 
-This is the measurement that retires the ANN question for now: at ~105 chunks an exact scan is well
-inside the budget, and IVFFlat or HNSW would trade *approximate* recall for time this phase does not
-need. Revisit above roughly 50k chunks ([architecture.md §2](./architecture.md)).
+## 7. Latency
 
-## 7. Exit criteria
+Median **8.7 ms**, max 12.5 ms, over 28 queries — embedding plus exact cosine scan, model loaded
+once outside the loop.
 
-- [x] Retrieval across all documents works — 26 queries, §2.
-- [x] Retrieval filtered to one document works — `search(..., document_id=...)`, covered by
+This retires the ANN question for now: at ~103 chunks an exact scan is well inside budget, and
+IVFFlat or HNSW would trade *approximate* recall for time this phase does not need. Revisit above
+roughly 50k chunks ([architecture.md §2](./architecture.md)).
+
+## 8. Exit criteria
+
+- [x] Retrieval across all documents works — 28 queries, §2.
+- [x] Retrieval filtered to one document works — `search(..., document_id=...)`,
       `test_retriever.py::test_document_filter_scopes_results`.
-- [x] Labelled retrieval set exists, including out-of-corpus questions — 20 + 6, §1.
+- [x] Labelled retrieval set exists, including out-of-corpus questions — 20 + 8, §1.
 - [x] recall@k reported for at least three values of k — five values, §2.
 - [x] **Floor chosen from measured data, with the number and its justification written down** —
-      0.65, §4–5.
-- [x] A question known to be outside the corpus returns zero chunks above the floor — 6/6 at 0.65.
-- [x] Query latency measured — median 9.9 ms, §6.
+      0.69, §5–6.
+- [x] A question known to be outside the corpus returns zero chunks above the floor — 8/8 at 0.69.
+- [x] Query latency measured — median 8.7 ms, §7.
 
-## 8. What this does not establish
+## 9. What this does not establish
 
-- **The labels are unreviewed.** Every number inherits them.
-- **Twenty-six questions is a calibration, not a guarantee.** The floor has one real counter-example
-  (0.627) and 0.023 of margin over it. A question nearer the corpus boundary will eventually beat it;
-  that is what gate 2 is for.
-- **Nothing here tests answering.** recall@8 = 0.975 says the right passage reaches the model. Whether
-  the model then cites it correctly is Phase 2.5, and this phase exists precisely so that failure can
-  be attributed cleanly when it happens.
+- **The labels are unreviewed.** Every number inherits them, and the labeller also wrote the
+  retriever.
+- **Labels are keyed by `slug:ordinal`, which shifts when a document is re-chunked.** This already
+  bit once: quarantining two passages renumbered every later Irish chunk and six labels silently
+  pointed at the wrong text, dropping recall 0.975 → 0.800 in a way that looked exactly like a real
+  regression. `run_retrieval_eval.py` now refuses to run if a labelled key no longer exists.
+- **The margin is 0.010.** Twenty-eight questions is a calibration, not a guarantee, and this one is
+  tighter than the last. Expect the floor to need re-measuring after any corpus change.
+- **Nothing here tests answering.** recall@8 = 0.975 says the right passage reaches the model.
+  Whether the model then cites it correctly is Phase 2.5 — and gate 2 now matters more than this
+  phase's number does.
 - **The floor is tuned to this corpus and this embedding model.** Changing either invalidates it.
-  `services/retriever.py` says so at the constant.

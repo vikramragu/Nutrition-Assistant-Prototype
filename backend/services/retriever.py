@@ -32,20 +32,30 @@ from services.embeddings import EmbeddingClient, get_embedding_client
 logger = logging.getLogger(__name__)
 
 # Both measured, 2026-10-05, against eval/retrieval_set.json (20 in-corpus questions,
-# 6 out-of-corpus). Full sweep and reasoning in
+# 8 out-of-corpus). Full sweep and reasoning in
 # docs/features/rag-sourced-claims/retrieval-calibration.md.
 #
-# FLOOR: in-corpus top-1 scores bottom out at 0.709; out-of-corpus top out at 0.627.
-# Any floor in 0.63..0.70 separates the set perfectly. 0.65 sits below the midpoint on
-# purpose -- architecture.md §7.3 makes the model's `answers_question` the stronger gate,
-# so a mis-set floor should cost a wasted generation call rather than a wrong refusal.
+# FLOOR: worst in-corpus top-1 is 0.7087; best out-of-corpus is 0.6796. Floors in
+# 0.68..0.70 separate the set, and 0.69 is the midpoint -- margins of 0.010 below and
+# 0.019 above.
+#
+# **This band is only 0.02 wide, down from 0.07.** It narrowed when two destroyed tables
+# were quarantined out of the corpus (corpus.yaml): questions about figures the corpus
+# deliberately no longer states still land on topically adjacent text, and they score
+# 0.66-0.68. The floor is therefore a much weaker discriminator than it first appeared,
+# and gate 2 -- the model's `answers_question` verdict, architecture.md §7.3 -- is now
+# load-bearing rather than a backstop.
+#
+# 0.68, the bottom of the band, would follow the usual "fail toward a wasted model call"
+# rule, but its margin over the worst negative is 0.0004 -- a coincidence, not a margin.
+# Hence the midpoint.
 #
 # K: recall@8 = 0.975 and recall@10 = 0.975 -- the curve is flat past 8, so a larger k
 # buys nothing but context.
 #
 # Changing either without re-running `python eval/run_retrieval_eval.py` makes this
 # comment false. The floor *is* the not-in-corpus refusal; it is not a tuning knob.
-DEFAULT_FLOOR = 0.65
+DEFAULT_FLOOR = 0.69
 DEFAULT_K = 8
 
 

@@ -29,6 +29,15 @@ class ManifestEntry:
     expected_pages: int | None = None
     sha256: str | None = None  # prefix; see fetch.py for why a prefix is enough
 
+    # Passages to keep out of the index. Each entry is a distinctive substring plus the
+    # reason it is excluded, reviewed by hand -- see corpus.yaml and chunk._is_quarantined.
+    #
+    # A manifest list rather than a heuristic because three text statistics were measured
+    # against this corpus (repetition ratio, prose density, function-word density) and
+    # none separates a destroyed table from ordinary bulleted guidance. A detector tuned
+    # to catch these would also drop real advice, which is the worse error.
+    quarantine: list[dict[str, str]] = field(default_factory=list)
+
 
 @dataclass
 class FetchedDocument:

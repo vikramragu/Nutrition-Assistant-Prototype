@@ -111,6 +111,10 @@ def chunk_document(
             logger.info("skipping non-content section %r in %s", heading, entry.id)
             continue
         for text, page_from, page_to in _pack(body, count, budget, overlap):
+            quarantined = _quarantine_reason(text, entry.quarantine)
+            if quarantined is not None:
+                logger.info("quarantined passage in %s -- %s", entry.id, quarantined)
+                continue
             chunks.append(
                 Chunk(
                     document_id=entry.id,
@@ -129,6 +133,9 @@ def chunk_document(
 
     chunks = _merge_undersized(chunks, count, budget)
     _warn_on_truncation_risk(chunks, count)
+    # Checked against the parsed document, not the surviving chunks: a rule that matches
+    # nothing means the passage moved and is now silently back in the index.
+    verify_quarantine_rules(entry, chunks, " ".join(b.text for b in parsed.blocks))
     return chunks
 
 
@@ -167,6 +174,50 @@ def _merge_undersized(chunks: list[Chunk], count: TokenCounter, budget: int) -> 
         merged.append(pending)
 
     return [dataclasses.replace(c, ordinal=i) for i, c in enumerate(merged)]
+
+
+def _quarantine_reason(text: str, rules: list[dict[str, str]]) -> str | None:
+    """Return why this passage is excluded, or None to keep it.
+
+    Quarantine exists for one specific failure: a table whose row/column structure PDF
+    extraction destroys, leaving numbers next to labels they may not belong to. Such a
+    passage reads as plausible prose, retrieves normally, and invites a confidently wrong
+    figure under a citation that looks sound.
+
+    The rules are declared per document in `corpus.yaml`, each with a recorded reason,
+    because no measured text statistic distinguishes a destroyed table from ordinary
+    bulleted guidance on this corpus (see `ManifestEntry.quarantine`). Matching is on a
+    whitespace-normalised substring so a rule survives re-chunking, which an ordinal
+    would not.
+
+    A rule that matches nothing is an error, not a no-op -- it means the passage moved
+    and the exclusion silently stopped applying. `verify_quarantine_rules` checks that.
+    """
+    if not rules:
+        return None
+    haystack = " ".join(text.split())
+    for rule in rules:
+        if " ".join(rule["match"].split()) in haystack:
+            return rule.get("reason", rule["match"])
+    return None
+
+
+def verify_quarantine_rules(entry, chunks: list[Chunk], raw_text: str) -> None:
+    """Fail loudly if a quarantine rule no longer matches anything in the document.
+
+    A stale rule is the dangerous case: the passage is still in the corpus, the manifest
+    still claims it was excluded, and nothing reports a problem. Checked against the
+    document's full text rather than the surviving chunks, so "the rule fired" and "the
+    rule is obsolete" are distinguishable.
+    """
+    haystack = " ".join(raw_text.split())
+    for rule in entry.quarantine:
+        if " ".join(rule["match"].split()) not in haystack:
+            raise ValueError(
+                f"{entry.id}: quarantine rule {rule['match']!r} matches nothing in the "
+                f"document. The passage has moved or changed -- re-review it rather than "
+                f"deleting the rule; the exclusion is currently doing nothing."
+            )
 
 
 def _is_non_content(heading: str | None) -> bool:

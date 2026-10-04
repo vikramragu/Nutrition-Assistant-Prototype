@@ -10,6 +10,24 @@
 #
 # expected_pages and sha256 are assertions. Ingestion fails if either differs -- sha256
 # is how we detect that a publisher silently revised a document under the same URL.
+#
+# `quarantine` keeps a passage out of the index, with the reason recorded next to it.
+# Added 2026-10-05 for tables that PDF extraction destroys: a PDF stores positioned text
+# boxes, not rows and columns, so a table's labels and its numbers arrive as separate
+# runs of text with nothing linking them. The result reads as plausible prose and is
+# retrievable, so the risk is a confidently wrong *number* carried by a citation that
+# looks entirely legitimate -- the `inconsistent_number` failure this milestone exists to
+# prevent.
+#
+# A reviewed list rather than an automatic rule, deliberately. Three text statistics were
+# measured against this corpus and none separates a destroyed table from ordinary
+# bulleted guidance; a detector aggressive enough to catch these would also drop real
+# advice. The judgement is therefore made here, in data, where it can be reviewed and
+# diffed -- not hidden in a threshold.
+#
+# The test for inclusion is NOT "is this chunk untidy". It is: **does this passage pair a
+# number with a label it may not belong to?** A table whose values were lost entirely is
+# left in: a model asked for a figure finds none and declines, which is the safe failure.
 
 - id: icmr-nin-my-plate-2024
   name: 'Policy Brief: Promotion of "My Plate for the Day" and physical activity'
@@ -18,6 +36,13 @@
   year_source: pdf_creation_date   # 2024-01-18; no year stated in the text
   source_url: https://www.nin.res.in/brief/Policy%20Brief%20My%20Plate%20J18%2024.pdf
   media_type: application/pdf
+  # NOT quarantined, reviewed 2026-10-05: the "My Plate for the Day" grams-per-day table
+  # is also destroyed by extraction, but differently -- its *values* did not survive at
+  # all. What remains is column headers and food-group names with no figures attached, so
+  # there is no number to misattribute. A model asked how many grams of cereals finds
+  # none and `answers_question` is false, which is the safe failure. The chunk also
+  # carries a genuine standalone sentence (sugar restricted to 25-30 g/day) that would be
+  # lost by excluding it.
   expected_pages: 4
   sha256: f7e6792056c9c9f7
 
@@ -38,6 +63,37 @@
   year_source: pdf_creation_date   # 2016-12-05; no year stated in the text
   source_url: https://assets.gov.ie/7649/3049964a47cb405fa20ea8d96bf50c91.pdf
   media_type: application/pdf
+  quarantine:
+    # Daily calorie needs by age and activity. On the page: a grid with Child/Teenager/
+    # Adult down one axis and Active/Inactive across the other. In the PDF the labels sit
+    # at y=265 and y=356 and the values at y=529, in separate text boxes -- the pairing
+    # exists only as column alignment and is not recoverable from the text. Extraction
+    # yields four labels and four values in sequence with no way to match them.
+    # Measured retrievable above the floor on every calorie question tried, ranking 1st
+    # for "calories for an inactive adult over 51?" (0.676), and the Phase 1 scope guard
+    # does not block those questions.
+    - match: "Active Child Teenager Adult Adult Inactive"
+      reason: calorie-by-age table, label row; values unpairable after extraction
+    # The same table's VALUE row, which lives in a different text block and therefore a
+    # different chunk. Quarantining only the label row made things *worse*, not better:
+    # the orphaned values re-chunked under the heading "Average daily calorie needs for
+    # all foods and drinks for adults", which reads as authoritative, and scored 0.719
+    # for "calories for an inactive adult over 51?" -- higher than before the exclusion.
+    # Both halves of a destroyed table have to go, and removing one is not a partial fix.
+    - match: "Active 2000kcal Inactive 1800kcal"
+      reason: calorie-by-age table, value row; orphaned figures under a misleading heading
+    # Weekly lower-risk alcohol limits: Men 17 standard drinks / 170g, Women 11 / 110g.
+    # Same two-column failure. The order happens to be consistent, so the pairing is
+    # *inferable* -- but only positionally, and nothing in the text states it. A model
+    # has even odds of swapping the figures between men and women, on a health number
+    # where that is harmful.
+    #
+    # Excluding this leaves the corpus with no weekly alcohol limit at all (the DGA's
+    # alcohol section is qualitative -- "consume less alcohol" -- and states no figure).
+    # That is the intended outcome: a not-in-corpus refusal is the designed safe failure,
+    # and is better than a 50/50 chance of telling a woman her limit is a man's.
+    - match: "Men Women 17 standard drinks 11 standard drinks"
+      reason: alcohol limits table; sex-to-figure pairing only positional, harmful if swapped
   expected_pages: 7
   sha256: 4a85efe768f7d218
   # Serves no Content-Length on GET (it does on HEAD) -- completeness rests on the

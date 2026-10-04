@@ -13,19 +13,27 @@
       "id": "q01",
       "question": "How much free sugar should I eat per day?",
       "kind": "in_corpus",
-      "relevant": ["who-healthy-diet-2026:3"]
+      "relevant": [
+        "who-healthy-diet-2026:3"
+      ]
     },
     {
       "id": "q02",
       "question": "What temperature should a fridge keep food at?",
       "kind": "in_corpus",
-      "relevant": ["fsanz-temperature-control-2002:6", "fsanz-temperature-control-2002:8"]
+      "relevant": [
+        "fsanz-temperature-control-2002:6",
+        "fsanz-temperature-control-2002:8"
+      ]
     },
     {
       "id": "q03",
       "question": "How long can cooked food safely sit out at room temperature?",
       "kind": "in_corpus",
-      "relevant": ["fsanz-temperature-control-2002:15", "fsanz-temperature-control-2002:16"]
+      "relevant": [
+        "fsanz-temperature-control-2002:15",
+        "fsanz-temperature-control-2002:16"
+      ]
     },
     {
       "id": "q04",
@@ -41,19 +49,27 @@
       "id": "q05",
       "question": "How should a restaurant dispose of used cooking oil?",
       "kind": "in_corpus",
-      "relevant": ["fssai-used-cooking-oil-2018:4", "fssai-used-cooking-oil-2018:5"]
+      "relevant": [
+        "fssai-used-cooking-oil-2018:4",
+        "fssai-used-cooking-oil-2018:5"
+      ]
     },
     {
       "id": "q06",
       "question": "How many servings of vegetables and fruit should I eat each day?",
       "kind": "in_corpus",
-      "relevant": ["usda-hhs-dga-2025:6", "ie-doh-food-pyramid-2016:12"]
+      "relevant": [
+        "usda-hhs-dga-2025:6",
+        "ie-doh-food-pyramid-2016:11"
+      ]
     },
     {
       "id": "q07",
       "question": "How much total fat should an adult eat?",
       "kind": "in_corpus",
-      "relevant": ["who-healthy-diet-2026:5"]
+      "relevant": [
+        "who-healthy-diet-2026:5"
+      ]
     },
     {
       "id": "q08",
@@ -69,25 +85,37 @@
       "id": "q09",
       "question": "What should a baby be fed in the first six months of life?",
       "kind": "in_corpus",
-      "relevant": ["who-healthy-diet-2026:11", "usda-hhs-dga-2025:13"]
+      "relevant": [
+        "who-healthy-diet-2026:11",
+        "usda-hhs-dga-2025:13"
+      ]
     },
     {
       "id": "q10",
-      "question": "What is the weekly lower risk limit for alcohol?",
+      "question": "Who should avoid alcohol completely?",
       "kind": "in_corpus",
-      "relevant": ["ie-doh-food-pyramid-2016:3", "usda-hhs-dga-2025:11"]
+      "relevant": [
+        "usda-hhs-dga-2025:11"
+      ],
+      "label_note": "Was 'What is the weekly lower risk limit for alcohol?' until 2026-10-05. The Irish table stating those limits is now quarantined (its men/women-to-figure pairing did not survive PDF extraction), and the DGA's alcohol section is qualitative, so the corpus no longer states a weekly limit. See q27, which now asks that question as an out-of-corpus case."
     },
     {
       "id": "q11",
       "question": "What temperature do I need to reheat food to?",
       "kind": "in_corpus",
-      "relevant": ["fsanz-temperature-control-2002:12", "fsanz-temperature-control-2002:13"]
+      "relevant": [
+        "fsanz-temperature-control-2002:12",
+        "fsanz-temperature-control-2002:13"
+      ]
     },
     {
       "id": "q12",
       "question": "How much protein do I need?",
       "kind": "in_corpus",
-      "relevant": ["usda-hhs-dga-2025:3", "who-healthy-diet-2026:6"]
+      "relevant": [
+        "usda-hhs-dga-2025:3",
+        "who-healthy-diet-2026:6"
+      ]
     },
     {
       "id": "q13",
@@ -103,43 +131,60 @@
       "id": "q14",
       "question": "What are the five keys to safer food?",
       "kind": "in_corpus",
-      "relevant": ["who-five-keys-2013:0", "who-five-keys-2013:1"]
+      "relevant": [
+        "who-five-keys-2013:0",
+        "who-five-keys-2013:1"
+      ]
     },
     {
       "id": "q15",
       "question": "Should I choose whole grains over refined grains?",
       "kind": "in_corpus",
-      "relevant": ["usda-hhs-dga-2025:8", "ie-doh-food-pyramid-2016:11"]
+      "relevant": [
+        "usda-hhs-dga-2025:8",
+        "ie-doh-food-pyramid-2016:10"
+      ]
     },
     {
       "id": "q16",
       "question": "How much fluid should I drink a day?",
       "kind": "in_corpus",
-      "relevant": ["ie-doh-food-pyramid-2016:7"]
+      "relevant": [
+        "ie-doh-food-pyramid-2016:6"
+      ]
     },
     {
       "id": "q17",
       "question": "What foods are on the top shelf of the Food Pyramid?",
       "kind": "in_corpus",
-      "relevant": ["ie-doh-food-pyramid-2016:6"]
+      "relevant": [
+        "ie-doh-food-pyramid-2016:5"
+      ]
     },
     {
       "id": "q18",
       "question": "What are the nutrition recommendations during pregnancy?",
       "kind": "in_corpus",
-      "relevant": ["usda-hhs-dga-2025:19"]
+      "relevant": [
+        "usda-hhs-dga-2025:19"
+      ]
     },
     {
       "id": "q19",
       "question": "Which foods are good sources of healthy fats?",
       "kind": "in_corpus",
-      "relevant": ["usda-hhs-dga-2025:7", "ie-doh-food-pyramid-2016:8"]
+      "relevant": [
+        "usda-hhs-dga-2025:7",
+        "ie-doh-food-pyramid-2016:7"
+      ]
     },
     {
       "id": "q20",
       "question": "How often should I eat oily fish?",
       "kind": "in_corpus",
-      "relevant": ["ie-doh-food-pyramid-2016:9"]
+      "relevant": [
+        "ie-doh-food-pyramid-2016:8"
+      ]
     },
     {
       "id": "q21",
@@ -176,6 +221,20 @@
       "question": "What were the sales figures for electric cars in Norway last year?",
       "kind": "out_of_corpus",
       "relevant": []
+    },
+    {
+      "id": "q27",
+      "question": "How many standard drinks a week is the lower risk limit for women?",
+      "kind": "out_of_corpus",
+      "relevant": [],
+      "label_note": "The hardest negative in the set, and the most important. The corpus DID contain this figure until 2026-10-05, in an Irish table whose sex-to-figure pairing PDF extraction destroyed; it is now quarantined. The right behaviour is a not-in-corpus refusal, so this question exists to prove the refusal actually fires rather than the retriever finding some adjacent alcohol text and answering anyway."
+    },
+    {
+      "id": "q28",
+      "question": "How many calories does an inactive adult over 51 need per day?",
+      "kind": "out_of_corpus",
+      "relevant": [],
+      "label_note": "Same reason as q27. This question previously retrieved the destroyed calorie-by-age table at rank 1 (0.676, above the floor), which is exactly the path to a confidently wrong number under a valid-looking citation. It must now refuse."
     }
   ]
 }
