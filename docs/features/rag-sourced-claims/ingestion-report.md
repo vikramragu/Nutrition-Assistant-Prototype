@@ -552,11 +552,22 @@ Active 2000kcal Inactive 1800kcal Active 2500kcal Inactive 2000kcal
 Four labels, four values, no way to pair them. On the page the labels sit at y=265 and y=356 and the
 values at y=529; the relationship was only ever column alignment.
 
-**This is not a parsing bug and not a chunking bug.** The information was never in the text. It is
-also unlike §9.5: that defect was recoverable because the right order was present in the
-coordinates. Here there is nothing to recover — reconstructing the grid means inferring which header
-owns which cell, and `find_tables()` was already shown unreliable on this corpus. Half-right would
-be worse than nothing: a confidently cited calorie figure attached to the wrong age group.
+**This is not a parsing bug and not a chunking bug**, and — verified 2026-10-05 — **it is not a PDF
+bug either.** A perfect HTML table with explicit `<tr>`/`<td>` was pushed through this pipeline and
+came out identically flattened: *"Group Active Inactive Teenager 2500 kcal 1800 kcal Adult 2000 kcal
+2000 kcal"*. The cause is that the pipeline renders everything to plain text and a chunk is a
+string, so the grid dies at that step regardless of source format.
+
+The PDF does not cause the problem; it makes it **unrecoverable**. In HTML the rows and columns are
+present in the source and merely discarded, so that case is fixable. In a PDF they exist only as
+coordinates, reconstructing them means inferring which header owns which cell, and `find_tables()`
+was already shown unreliable here. Half-right is worse than nothing: a confidently cited calorie
+figure attached to the wrong age group.
+
+Consequence: **replacing this document with another PDF would change nothing, and replacing it with
+an HTML version would change nothing today either.** A real fix means representing a table as
+something other than a flat string — one row per line, or structured data carried into the chunk.
+Not attempted; the quarantine below is containment, not a cure.
 
 **Measured risk, not assumed.** The chunk scored above the relevance floor on every calorie question
 tried, ranking **1st** for *"calories for an inactive adult over 51?"* (0.676), and Phase 1's scope

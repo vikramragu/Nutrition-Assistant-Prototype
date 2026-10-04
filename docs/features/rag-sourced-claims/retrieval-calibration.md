@@ -103,8 +103,13 @@ The top two are the interesting ones, and they are new.
 ## 4. The corpus quarantine, and what it cost the floor
 
 Three passages were removed from the index on 2026-10-05 (`corpus.yaml` → `quarantine`). All three
-are tables that PDF extraction destroyed: a PDF stores positioned text boxes, not rows and columns,
-so a table's labels and its numbers arrive as separate runs of text with nothing linking them.
+are tables flattened into unusable text: the pipeline renders everything to plain text and a chunk
+is a string, so a table's rows and columns are lost and its labels end up next to numbers they may
+not belong to.
+
+Not a PDF-specific fault, despite appearances — a perfect HTML table flattens the same way through
+this pipeline (see [ingestion-report.md §9.8](./ingestion-report.md)). A PDF makes it
+*unrecoverable* rather than causing it, because there the grid exists only as coordinates.
 
 The excluded passages and why:
 

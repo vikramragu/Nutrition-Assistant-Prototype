@@ -230,6 +230,37 @@ coordinates and only needed sorting. Here the information was never in the text.
 grid means inferring which header owns which cell, and half-right is worse than nothing — a
 confidently cited calorie figure attached to the wrong age group.
 
+### The root cause is not the PDF — verified 2026-10-05
+
+Easy to misread this as "PDFs are bad at tables". It is narrower than that, and the difference
+decides what a real fix looks like. A **perfect HTML table** — explicit `<tr>`/`<td>`, nothing lost
+— was pushed through our own pipeline:
+
+```text
+<tr><th>Group</th><th>Active</th><th>Inactive</th></tr>
+<tr><td>Teenager</td><td>2500 kcal</td><td>1800 kcal</td></tr>
+
+  ->  "Calorie needs Group Active Inactive Teenager 2500 kcal 1800 kcal Adult 2000 kcal 2000 kcal"
+```
+
+**Identical failure, from a source where nothing was ever lost.** The cause is that the pipeline
+renders everything to plain text, and a chunk is a string: the grid dies at that step whatever the
+source format was. The PDF does not *cause* the problem — it makes it *unrecoverable*.
+
+| | structure present in source? | recoverable? |
+|---|---|---|
+| PDF table | No — only coordinates | Only by inference; risky |
+| HTML table | **Yes** — explicit tags | **Yes** — we currently discard it |
+
+So: **swapping the Irish PDF for another PDF changes nothing. Swapping it for an HTML version
+changes nothing either, today** — we would flatten it anyway — though it would at least become
+fixable.
+
+A real fix means representing a table as something other than a flat string: one row per line
+(`"Teenager: Active 2500 kcal, Inactive 1800 kcal"`), or structured data carried through to the
+chunk. That works for HTML immediately and for PDFs only where the grid can be rebuilt from
+coordinates. **Not attempted** — see the quarantine below, which is the containment, not the cure.
+
 ### Why it had to be acted on
 
 Measured, not assumed: the chunk cleared the relevance floor on **every** calorie question tried and

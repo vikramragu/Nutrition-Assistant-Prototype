@@ -12,12 +12,17 @@
 # is how we detect that a publisher silently revised a document under the same URL.
 #
 # `quarantine` keeps a passage out of the index, with the reason recorded next to it.
-# Added 2026-10-05 for tables that PDF extraction destroys: a PDF stores positioned text
-# boxes, not rows and columns, so a table's labels and its numbers arrive as separate
-# runs of text with nothing linking them. The result reads as plausible prose and is
-# retrievable, so the risk is a confidently wrong *number* carried by a citation that
-# looks entirely legitimate -- the `inconsistent_number` failure this milestone exists to
-# prevent.
+# Added 2026-10-05 for tables flattened into unusable text: the pipeline renders
+# everything to plain text and a chunk is a string, so a table's rows and columns are
+# lost and its labels end up beside numbers they may not belong to. The result reads as
+# plausible prose and retrieves normally, so the risk is a confidently wrong *number*
+# under a citation that looks entirely legitimate -- the `inconsistent_number` failure
+# this milestone exists to prevent.
+#
+# Not a PDF-specific fault, despite where it was found: a perfect HTML table with
+# explicit <tr>/<td> flattens identically through this pipeline. A PDF makes it
+# *unrecoverable* rather than causing it, because there the grid exists only as
+# coordinates. See ingestion-report.md §9.8.
 #
 # A reviewed list rather than an automatic rule, deliberately. Three text statistics were
 # measured against this corpus and none separates a destroyed table from ordinary
