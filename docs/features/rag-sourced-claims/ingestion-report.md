@@ -215,9 +215,9 @@ on every page. Digits are now normalised before the comparison.
 - **Cover-page headings are title fragments.** `who-five-keys-2013:0` is headed `'Prevention of'`;
   `fsanz-temperature-control-2002:0` is headed `'potentially hazardous foods'`. Cover pages have no
   reading order a font-size heuristic can recover. Affects the first chunk of each document only.
-- **One 3-token chunk survives** — `'January 2026'` under heading `'Vegetarians & Vegans'` in the DGA.
-  A date that appears once, so the furniture filter cannot see it, and it is the last chunk in its
-  document so it has nothing to merge forward into.
+- ~~**One 3-token chunk survives** — `'January 2026'` under heading `'Vegetarians & Vegans'` in the
+  DGA.~~ **Resolved** by the §9.5 reading-order fix, which placed the stray date inside the block it
+  belongs to. The smallest chunk is now 40 tokens, exactly `MIN_CHUNK_TOKENS`.
 - **Graphic-only content is not indexed.** Documents 1, 3 and 5 are graphic-heavy; anything that
   exists only inside a figure never reaches a chunk. A question answerable only from a figure will
   correctly produce a not-in-corpus refusal rather than a wrong answer — the right failure direction.
@@ -467,13 +467,76 @@ Fixed with `ALTER DATABASE template1 REFRESH COLLATION VERSION` and the same on 
 3t  usda-hhs-dga-2025:24  [Vegetarians & Vegans]  'January 2026'
 ```
 
-A trailing date fragment survived as its own chunk; `MIN_CHUNK_TOKENS = 40` merges forward but does
-not re-merge the final flush of a section. One chunk in 105, and it is retrievable noise rather than
-wrong guidance — but it is noise that could be cited. Recorded, not fixed: Phase 2.4's labelled
-sweep will show whether it ever surfaces above the floor, which is the evidence that should decide
-whether the chunker needs a backward merge.
+A trailing date fragment survived as its own chunk. Recorded here as unfixed, with the plan of
+letting Phase 2.4's sweep decide whether it mattered.
 
-### 9.4 Known limitation carried forward
+**Resolved incidentally by §9.5.** The date was not a chunking problem at all — it was the last
+block of a page whose reading order was wrong, and once the blocks were ordered correctly it merged
+into the text it belongs to. The smallest chunk in the corpus is now 40 tokens. Worth noting as a
+pattern: two of the three defects filed against the chunker turned out to be the parser.
+
+### 9.5 PDF block order — found in Phase 2.4, fixed in the parser
+
+Found while reading the corpus to hand-label the Phase 2.4 retrieval set, which is the only reason
+it was found at all: it produces no error, no warning and entirely plausible output.
+
+**Every section heading in the DGA was attached to the wrong section** — one behind. A chunk whose
+text read *"Eat a variety of colorful, nutrient-dense vegetables and fruits…"* was filed under
+`section_heading: "Gut Health"`.
+
+Two consequences, both bad for a project whose entire premise is a checkable citation:
+
+- **The citation names the wrong section.** A reader following it looks in the wrong place —
+  arguably worse than no heading at all, which at least does not mislead.
+- **The wrong heading is embedded.** `Chunk.embedding_input()` prefixes
+  `"{document_name} — {section_heading}"`, so every DGA vector carried a heading from a different
+  section.
+
+This also retires a "known limitation" recorded in §5. *"How many portions of fruit and vegetables a
+day?"* returning DGA § *Gut Health* at 0.758 was never a retrieval weakness. Retrieval had found
+exactly the right chunk; the chunk was mislabelled. The symptom was recorded against the wrong
+component for a full phase.
+
+**Cause.** A PDF's content-stream order is arbitrary, and the DGA emits each 18pt heading *after*
+the bullets it introduces. `chunk._sections()` is correct — given `[bullets_A][HEADING_A][bullets_B]`
+it can only attach `bullets_B` to `HEADING_A`. The input order was wrong, not the logic. Measured:
+content-stream order disagrees with position on 9/9 DGA pages, 13/23 FSANZ, 7/7 Irish — **most pages
+of every document**.
+
+**Two failed fixes before the one that worked**, each of which is why the final one is shaped as it is:
+
+| Attempt | Result |
+|---|---|
+| `sort=True`, i.e. order by `(y, x)` | Headings correct, but the DGA's two columns of bullets interleave: *"…nutrient-dense protein **+ Consume meat with no…**"*, spliced mid-sentence |
+| Band → column → y, with the column split at the page midpoint | DGA correct; **FSANZ regressed 6 → 11 severed chunks**. FSANZ is single-column from x=147 to x=497 on a 595pt page, so a midpoint test files its long lines as "right column" and its short lines as "left", shuffling ordinary paragraphs |
+
+**The fix** (`parse._reading_order`): group blocks into bands delimited by headings, detect columns
+*within each band* by finding a vertical strip no body block crosses, and order band → heading →
+column → y. Per band rather than per page because one DGA page sets three cards in two columns and a
+fourth full width — no single page-wide gutter describes it. Headings are excluded from the gutter
+test because they span both columns and would mask it.
+
+A page with no gutter is left in plain top-to-bottom order, so single-column documents are untouched.
+
+**Result:** 105 chunks before and after; FSANZ byte-identical; DGA headings all correct; severed
+chunks 25 → 24 overall.
+
+### 9.6 Re-seeding silently kept the old chunks
+
+Immediately after the fix above, `python -m corpus.seed` reported `skipped=7, chunks written=0` —
+and the database kept every wrong heading.
+
+`content_sha256` hashes the **source bytes**. The PDFs had not changed; only the parser had. So the
+skip-if-unchanged test was comparing the wrong thing, and would have done so after *any* parser or
+chunker fix. The corrected corpus would have stayed out of the database with the log reporting
+success.
+
+Fixed by comparing a fingerprint of the chunking itself — ordinal, heading and text, in order —
+against the rows already stored, so the skip means what it claims. No migration: the comparison is
+computed from the `chunks` table at seed time. Re-seeding now reports
+`same source, re-chunked -- replacing` and is idempotent on the run after.
+
+### 9.7 Known limitation carried forward
 
 `claims.chunk_id` is nullable, which is what keeps Phase 1 rows valid. Nothing yet enforces that a
 *new* claim has one. That enforcement belongs to Phase 2.5's citation validation, not to the schema —

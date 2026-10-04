@@ -26,6 +26,9 @@ import uuid
 from collections import defaultdict
 from pathlib import Path
 
+import hashlib
+from collections.abc import Iterable
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -38,6 +41,24 @@ CORPUS_DIR = Path(__file__).resolve().parent
 DEFAULT_SNAPSHOT = CORPUS_DIR / "corpus_snapshot.jsonl.gz"
 
 logger = logging.getLogger("corpus.seed")
+
+
+def _chunk_fingerprint(rows: Iterable[tuple[int, str | None, str]]) -> str:
+    """Hash of a document's chunking: ordinal, heading and text, in order.
+
+    `content_sha256` alone is not enough to decide whether a document needs re-seeding.
+    It hashes the *source bytes*, so a fix to the parser or the chunker -- same PDF,
+    different chunks -- leaves it identical and the document is skipped. That is not
+    hypothetical: the 2026-10-05 reading-order fix changed every DGA heading while every
+    source byte stayed the same, and the first re-seed after it reported
+    `skipped=7, chunks written=0` while the database kept the wrong headings.
+
+    Comparing the chunking itself makes the skip mean what it claims to mean.
+    """
+    digest = hashlib.sha256()
+    for ordinal, heading, text in rows:
+        digest.update(f"{ordinal}\x1f{heading or ''}\x1f{text}\x1e".encode())
+    return digest.hexdigest()
 
 
 def seed(session: Session, snapshot_path: Path, *, dry_run: bool = False) -> dict[str, int]:
@@ -58,17 +79,31 @@ def seed(session: Session, snapshot_path: Path, *, dry_run: bool = False) -> dic
         slug = meta["id"]
         existing = session.scalar(select(Document).where(Document.slug == slug))
 
+        snapshot_fingerprint = _chunk_fingerprint(
+            (row["ordinal"], row["section_heading"], row["text"])
+            for row in sorted(chunks_by_doc[slug], key=lambda r: r["ordinal"])
+        )
+
         if existing is not None and existing.content_sha256 == meta["content_sha256"]:
-            logger.info("%-34s unchanged, skipping", slug)
-            stats["documents_skipped"] += 1
-            continue
+            stored = session.execute(
+                select(Chunk.ordinal, Chunk.section_heading, Chunk.text)
+                .where(Chunk.document_id == existing.id)
+                .order_by(Chunk.ordinal)
+            ).all()
+            if _chunk_fingerprint(stored) == snapshot_fingerprint:
+                logger.info("%-34s unchanged, skipping", slug)
+                stats["documents_skipped"] += 1
+                continue
+            reason = "same source, re-chunked"
+        else:
+            reason = "content changed"
 
         if existing is not None:
-            # Content changed. Replacing the chunks cascades them away; the deterministic
-            # ids mean the replacements reuse the same keys wherever the chunking is
-            # unchanged, so citations survive. A claim citing a chunk that genuinely
-            # disappears raises on the RESTRICT constraint rather than vanishing quietly.
-            logger.info("%-34s content changed -- replacing", slug)
+            # Replacing the chunks cascades them away; the deterministic ids mean the
+            # replacements reuse the same keys wherever the chunking is unchanged, so
+            # citations survive. A claim citing a chunk that genuinely disappears raises
+            # on the RESTRICT constraint rather than vanishing quietly.
+            logger.info("%-34s %s -- replacing", slug, reason)
             session.delete(existing)
             session.flush()
 

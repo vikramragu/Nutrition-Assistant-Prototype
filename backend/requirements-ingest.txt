@@ -11,5 +11,5 @@ pdfminer.six==20251107 # defensive fallback -- unexercised by the current corpus
 trafilatura==2.0.0     # HTML extraction (output_format='xml') + page-date metadata
 pyyaml==6.0.3          # corpus.yaml
 httpx==0.28.1          # fetching, with Content-Length verification
-tokenizers==0.23.0     # exact bge-small token counts when chunking
+tokenizers==0.23.2     # exact bge-small token counts when chunking; matches what fastembed resolves
 # fastembed itself is in requirements.txt -- it is runtime, not ingest-only

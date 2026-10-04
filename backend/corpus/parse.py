@@ -124,9 +124,22 @@ def _parse_pdf_pymupdf(fetched: FetchedDocument) -> ParsedDocument:
 
 
 def _lines_on_page(page, page_number: int) -> list[Line]:
-    """Return one `Line` per visual line, with the signals heading detection needs."""
+    """Return one `Line` per visual line, in reading order, with heading signals.
+
+    **Blocks are reordered before anything else happens.** A PDF's content stream order
+    is arbitrary, and in this corpus it disagrees with position on most pages of every
+    document: the DGA emits each section heading *after* the bullets it introduces.
+    Left as-is, `chunk._sections()` attaches every heading to the *preceding* section, so
+    a chunk about vegetables and fruit is filed under "Gut Health". Nothing errors --
+    the citation just names the wrong section, and the wrong heading is embedded into
+    the chunk's vector by `Chunk.embedding_input()`.
+
+    A plain top-to-bottom sort is *not* the fix, and trying it is what showed why: this
+    document sets its bullets in two columns, so ordering by `(y, x)` splices the left
+    and right columns together mid-sentence. See `_reading_order`.
+    """
     lines: list[Line] = []
-    for block_index, block in enumerate(page.get_text("dict")["blocks"]):
+    for block_index, block in enumerate(_reading_order(page)):
         for line in block.get("lines", []):
             spans = line.get("spans", [])
             text = _clean(" ".join(span["text"] for span in spans))
@@ -136,6 +149,124 @@ def _lines_on_page(page, page_number: int) -> list[Line]:
             bold = any(span.get("flags", 0) & BOLD_FLAG for span in spans)
             lines.append(Line(text, page_number, round(size, 1), bold, block_index))
     return lines
+
+
+def _reading_order(page) -> list[dict]:
+    """Order a page's text blocks the way a person reads them.
+
+    The layout this has to survive is the DGA's: a full-width heading, then two columns
+    of bullets beneath it, repeated down the page as a stack of cards. Three orderings
+    were measured against it (2026-10-05):
+
+    - **content-stream order** -- headings land after their own bullets, so every
+      section heading is off by one;
+    - **`(y, x)`** (what PyMuPDF's `sort=True` gives) -- headings land correctly, but
+      left- and right-column bullets at the same height interleave, cutting sentences
+      in half;
+    - **band, then column, then y** -- correct on both counts, and on a single-column
+      page it degenerates to a plain top-to-bottom sort.
+
+    A *band* is the span between one heading and the next, so a heading always leads the
+    text it introduces. Within a band, each column is read out in full before the next.
+    Headings are identified by type size alone here -- deliberately cruder than
+    `_is_heading`, which needs the document-wide body size that is not known yet. A
+    missed heading merges two bands, which costs ordering nothing.
+    """
+    blocks = [b for b in page.get_text("dict")["blocks"] if b.get("type") == 0 and b.get("lines")]
+    if len(blocks) < 2:
+        return blocks
+
+    body_size = _page_body_size(blocks)
+    is_heading = {id(b): _block_size(b) >= body_size * HEADING_SIZE_RATIO for b in blocks}
+    heading_tops = sorted(b["bbox"][1] for b in blocks if is_heading[id(b)])
+
+    bands: dict[int, list[dict]] = collections.defaultdict(list)
+    for block in blocks:
+        bands[sum(1 for top in heading_tops if top <= block["bbox"][1])].append(block)
+
+    # Column detection is per band, not per page: one DGA page sets three cards in two
+    # columns and a fourth ("Gut Health") full width. A single page-wide gutter cannot
+    # describe that page, and looking for one finds nothing -- which is how this was
+    # found, with the two-column cards still interleaving after the gutter test went in.
+    ordered: list[dict] = []
+    for band in sorted(bands):
+        group = bands[band]
+        split_x = _column_split([b for b in group if not is_heading[id(b)]], page.rect.width)
+        group.sort(
+            key=lambda b: (
+                0 if is_heading[id(b)] else 1,
+                0 if split_x is None or (b["bbox"][0] + b["bbox"][2]) / 2 < split_x else 1,
+                b["bbox"][1],
+            )
+        )
+        ordered.extend(group)
+    return ordered
+
+
+def _column_split(body_blocks: list[dict], page_width: float) -> float | None:
+    """The x of the gutter between two text columns, or None if the page has one column.
+
+    Detected as a **vertical strip no body block crosses**, searched only in the middle
+    of the page. Measuring the gutter rather than assuming the page midpoint is the
+    whole point: FSANZ sets a single column from x=147 to x=497 on a 595pt page, so a
+    midpoint test calls its long lines "right column" and its short lines "left", which
+    shuffles ordinary paragraphs into nonsense. That document has no gutter, so it is
+    correctly left alone.
+
+    Headings are excluded from the test because they routinely span both columns and
+    would mask the gutter -- in the DGA they reach 40pt past it.
+    """
+    if not body_blocks:
+        return None
+
+    lo, hi = page_width * 0.3, page_width * 0.7
+    spans = [(b["bbox"][0], b["bbox"][2]) for b in body_blocks]
+
+    # Walk candidate gutters at 2pt resolution; keep the widest uncrossed run.
+    best_run: tuple[float, float] | None = None
+    run_start: float | None = None
+    x = lo
+    while x <= hi:
+        crossed = any(x0 < x < x1 for x0, x1 in spans)
+        if not crossed and run_start is None:
+            run_start = x
+        elif crossed and run_start is not None:
+            if best_run is None or (x - run_start) > (best_run[1] - best_run[0]):
+                best_run = (run_start, x)
+            run_start = None
+        x += 2.0
+    if run_start is not None and (best_run is None or (hi - run_start) > (best_run[1] - best_run[0])):
+        best_run = (run_start, hi)
+
+    if best_run is None:
+        return None
+    # A gutter narrower than this is word spacing in a ragged single column, not a column
+    # break. Both real two-column pages in this corpus clear it comfortably.
+    if best_run[1] - best_run[0] < 8.0:
+        return None
+    return (best_run[0] + best_run[1]) / 2
+
+
+def _page_body_size(blocks: list[dict]) -> float:
+    """Character-weighted dominant type size on one page.
+
+    Per page rather than per document because this runs before the document-wide size is
+    known. Weighted by characters so a page with many short headings and one dense
+    paragraph still reports the paragraph's size as body.
+    """
+    weights: collections.Counter[float] = collections.Counter()
+    for block in blocks:
+        for line in block["lines"]:
+            for span in line.get("spans", []):
+                weights[round(span["size"], 1)] += len(span.get("text", ""))
+    return weights.most_common(1)[0][0] if weights else 0.0
+
+
+def _block_size(block: dict) -> float:
+    return max(
+        (span["size"] for line in block["lines"] for span in line.get("spans", [])),
+        default=0.0,
+    )
 
 
 def _clean(text: str) -> str:
