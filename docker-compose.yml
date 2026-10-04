@@ -1,6 +1,11 @@
 services:
   postgres:
-    image: postgres:16
+    # pgvector/pgvector:pg16 is the official postgres:16 image with the `vector`
+    # extension added -- same Postgres major version, so the existing
+    # postgres_data volume is reused without a dump/restore. The stock
+    # postgres:16 image does not ship pgvector and the Phase 2 migration
+    # (CREATE EXTENSION vector) fails against it.
+    image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
       POSTGRES_USER: nutrition

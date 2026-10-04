@@ -1,0 +1,93 @@
+# Corpus manifest -- the reviewable definition of what the assistant is allowed to know.
+#
+# See docs/features/rag-sourced-claims/architecture.md §4 and problemStatement.md §4.1.
+# Frozen 2026-10-04 at the close of Phase 2.0. Seven documents, 56 pages.
+#
+# year_source is a required enum, not a comment. Three documents state no publication
+# year and theirs is inferred from the PDF creation date; the brief forbids inventing a
+# year, and an inferred year that cannot be distinguished from a stated one *is* an
+# invented year once someone reads the citation.
+#
+# expected_pages and sha256 are assertions. Ingestion fails if either differs -- sha256
+# is how we detect that a publisher silently revised a document under the same URL.
+
+- id: icmr-nin-my-plate-2024
+  name: 'Policy Brief: Promotion of "My Plate for the Day" and physical activity'
+  publisher: ICMR–National Institute of Nutrition (India)
+  year: 2024
+  year_source: pdf_creation_date   # 2024-01-18; no year stated in the text
+  source_url: https://www.nin.res.in/brief/Policy%20Brief%20My%20Plate%20J18%2024.pdf
+  media_type: application/pdf
+  expected_pages: 4
+  sha256: f7e6792056c9c9f7
+
+- id: usda-hhs-dga-2025
+  name: Dietary Guidelines for Americans, 2025–2030
+  publisher: USDA & HHS (United States)
+  year: 2025
+  year_source: document_text       # embedded PDF title states the edition
+  source_url: https://cdn.realfood.gov/DGA.pdf
+  media_type: application/pdf
+  expected_pages: 10
+  sha256: c34f1bec5c941626
+
+- id: ie-doh-food-pyramid-2016
+  name: 'Your guide to healthy eating: use the Food Pyramid'
+  publisher: Department of Health (Ireland)
+  year: 2016
+  year_source: pdf_creation_date   # 2016-12-05; no year stated in the text
+  source_url: https://assets.gov.ie/7649/3049964a47cb405fa20ea8d96bf50c91.pdf
+  media_type: application/pdf
+  expected_pages: 7
+  sha256: 4a85efe768f7d218
+  # Serves no Content-Length on GET (it does on HEAD) -- completeness rests on the
+  # sha256 above. See fetch.py::_assert_complete.
+
+- id: who-healthy-diet-2026
+  name: Healthy diet
+  publisher: World Health Organization
+  year: 2026
+  year_source: page_last_updated   # page states 26 January 2026; trafilatura reads it
+  source_url: https://www.who.int/news-room/fact-sheets/detail/healthy-diet
+  media_type: text/html
+  # No expected_pages: a web page has no pages. No sha256 pin either -- this page is
+  # revised in place under the same URL, so a pin would fail on every legitimate update.
+  # Its version identity is page_last_updated + retrieval_date, per architecture.md §5.1.
+  #
+  # Replaces the 2018 WHO Fact Sheet N°394 PDF, which WHO has superseded: the 2026 page
+  # no longer contains "less than 5%" or "30% of total energy", the figures that edition
+  # stated. Carrying the old one was the stale-guidance risk (problemStatement.md §10)
+  # live in the corpus.
+
+- id: who-five-keys-2013
+  name: 'Prevention of Foodborne Disease: The Five Keys to Safer Food'
+  publisher: World Health Organization
+  year: 2013
+  year_source: pdf_creation_date   # 2013-12-11; no year stated in the text
+  source_url: https://www.who.int/docs/default-source/wpro---documents/posters/food-safety/the-five-keys-to-safer-food-brochure.pdf
+  media_type: application/pdf
+  expected_pages: 2
+  sha256: 823d59b655d4475b
+
+- id: fssai-used-cooking-oil-2018
+  name: Guidance Note on Handling and Disposal of Used Cooking Oil
+  publisher: FSSAI (India)
+  year: 2018
+  year_source: pdf_creation_date   # 2018-11-12
+  source_url: https://fssai.gov.in/upload/uploadfiles/files/Guidance_Note_Used_Oil_12_11_2018.pdf
+  media_type: application/pdf
+  expected_pages: 4
+  sha256: 04e020c1a45368e7
+
+- id: fsanz-temperature-control-2002
+  name: 'Food Safety: Temperature control of potentially hazardous foods'
+  publisher: Food Standards Australia New Zealand
+  year: 2002
+  year_source: pdf_creation_date   # 2002-10-23
+  source_url: https://www.foodstandards.gov.au/sites/default/files/publications/Documents/FSTemp_control_Edition_for_printing.pdf
+  media_type: application/pdf
+  expected_pages: 23
+  sha256: 0a8f42bd53f8b86d
+  # Oldest document in the corpus by eleven years. Carries the 2 hour/4 hour guide and
+  # the 5-60 degC danger-zone definition -- the substance behind the fridge/storage
+  # question shape. See problemStatement.md §4.1 for the age caveat.

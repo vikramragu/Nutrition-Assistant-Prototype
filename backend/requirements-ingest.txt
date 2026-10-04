@@ -1,0 +1,15 @@
+# Ingestion-only dependencies (architecture.md §12.2, implementation-plan.md Phase 2.9).
+#
+# These are NOT installed in the deployed container. The corpus is ingested offline and
+# committed as a snapshot, so production never parses a PDF or reaches a publisher's
+# website. Install alongside requirements.txt only when running `python -m corpus.ingest`.
+
+-r requirements.txt
+
+pymupdf==1.26.6        # primary PDF parser; handles damaged xref and CID-encoded fonts
+pdfminer.six==20251107 # defensive fallback -- unexercised by the current corpus
+trafilatura==2.0.0     # HTML extraction (output_format='xml') + page-date metadata
+pyyaml==6.0.3          # corpus.yaml
+httpx==0.28.1          # fetching, with Content-Length verification
+tokenizers==0.23.0     # exact bge-small token counts when chunking
+# fastembed itself is in requirements.txt -- it is runtime, not ingest-only

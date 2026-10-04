@@ -1,0 +1,34 @@
+Put a retrieval layer under the chatbot you built in Phase 1, so it answers only from official public dietary guidance documents. Every claim carries a citation. When the guidance doesn't cover a question, the assistant says so.
+
+The problem
+Your failure log from last week has the symptoms written down. Numbers that move between runs, authorities cited that never said it, claims with nothing behind them.
+Meanwhile the real guidance exists. Health authorities publish long, careful, boring PDFs on exactly this. No API, just written prose, and almost nobody reads them. That gap is what RAG is for.
+
+The pipeline
+￼
+What you build
+1. Corpus. Gather 5 to 7 public guidance documents from recognised authorities. National nutrition institutes, food safety regulators and international health bodies all work. Written prose only, so anything with a clean API behind it doesn't belong here. Store publisher, year, source URL and retrieval date with every document.
+2. Chunking. Every chunk carries the document name, publisher, year and section heading. These documents are full of tables and numbered recommendations that fixed-size chunking will cut in half. Say in the README what you chose and what it cost you.
+3. Retrieval. A vector index over the chunks, supporting retrieval across all documents and retrieval filtered to one named document.
+4. Answer layer. The assistant answers only from retrieved chunks. Every claim carries a citation showing document name, publisher, year and a link.
+5. Cross-document questions. Some questions have two documents with something to say, like cooking oil, where a nutrition institute and a food safety regulator both weigh in. Answer per document, with separate citations. Never blend two sources into one claim about what "the guidelines say".
+6. Two kinds of refusal. You need both.
+* Not in the corpus:  When the retrieved chunks don't hold the answer, the assistant says the guidance doesn't cover it and names what it searched.
+* Out of scope by design: No medical advice, no calorie or weight targets, nothing about what anyone should weigh. It declines and points the person to a qualified professional. Enforce this in code, same as last week.
+7. Filling in the shell. Don't rebuild the frontend or backend. The sources panel you left empty now shows the chunks behind each answer. The source field on every claim carries a real citation instead of null. If your schema doesn't fit real citations, change it and note what you changed.
+
+Tools you can use
+* PDF parsing: PyMuPDF, Unstructured, Docling or LlamaParse. 
+* Chunking: LangChain text splitters, or your own splitter that breaks on section headings
+* Embeddings: OpenAI text-embedding-3-small, Cohere embed, or sentence-transformers to keep it local and free
+* Vector store: Supabase pgvector, Pinecone or Qdrant if you want to host it
+* Orchestration: LangChain or plain Python if you want to see every step
+* Everything else: same stack
+Rules
+* Answers come from retrieved text only. Model knowledge is not a source
+* Every claim carries a citation. No citation means the claim doesn't ship
+* Population-level guidance stays population-level. The assistant doesn't turn it into a personal recommendation
+* No calorie targets, no weight targets, no medical advice, anywhere in the conversation
+* When two documents disagree, show both with their publishers and years. Don't pick a winner
+* 5 to 7 documents
+* State chunk size, overlap, embedding model, index type and k value in the README

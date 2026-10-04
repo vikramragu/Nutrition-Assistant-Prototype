@@ -14,3 +14,7 @@ backend/.env
 
 # Eval run artifacts (generated, not source)
 eval/runs/
+backend/corpus/.cache/
+backend/chunks.json
+backend/corpus/chunks.json
+backend/corpus/chunks.parquet

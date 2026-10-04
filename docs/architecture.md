@@ -2,6 +2,8 @@
 
 This document defines the technical architecture for building the prototype described in [problemStatement.md](./problemStatement.md). It translates each requirement into concrete components, data flows, and interfaces so implementation can proceed without re-deriving design decisions.
 
+> **Scope note:** `claims[].source` is `null` throughout this document — that is this milestone's contract, not a permanent one. Populating it (retrieval, citations, the sources panel) is a later milestone, designed separately in [features/rag-sourced-claims/](./features/rag-sourced-claims/). Read that alongside this document before changing anything touching `source`.
+
 ---
 
 ## 1. Guiding Principle
