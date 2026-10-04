@@ -345,7 +345,7 @@ Full record: [retrieval-calibration.md](../retrieval-calibration.md). Labelled s
 
 | k | 1 | 3 | 5 | **8** | 10 |
 |---|---|---|---|---|---|
-| recall | 0.575 | 0.825 | 0.917 | **0.975** | 0.975 |
+| recall | 0.633 | 0.825 | 0.917 | **0.975** | 0.975 |
 
 **`floor = 0.69`, `k = 8`.** In-corpus top-1 spans 0.709–0.873; out-of-corpus 0.440–0.680. Only
 0.68–0.70 separates the set — a band just **0.02 wide**, narrowed from 0.07 by the §5c quarantine.
@@ -357,7 +357,16 @@ the band, but its margin over the worst negative is 0.0004: a coincidence, not a
 **Gate 2 is now load-bearing.** At a 0.02 band the floor is one awkward question from failing
 either way. q27 and q28 are in the set to keep that visible.
 
-Latency: median 8.7 ms. This is what retires the ANN-index question for now.
+Latency: median 7.8 ms. This is what retires the ANN-index question for now.
+
+**The labels were reviewed on 2026-10-05 and four of 44 were wrong** — each had matched on topic
+rather than on answering the question: a chunk describing the *problem* with oil disposal, one
+ending "Servings a day" with the number lost in a graphic, one saying sodium raises blood pressure
+without a quantity, and one giving a reheating *method* where the question asked a temperature. All
+four removed; recall@8 was unchanged at 0.975 and the floor did not move, so the corrections cost
+nothing but made the number honest. One borderline case (q17) was kept because its answer lives in
+the section heading, which *is* part of the chunk — embedded by `embedding_input()` and shown in the
+citation. Still one person's judgement, and that person wrote the retriever too.
 
 **Labels are keyed by `slug:ordinal`, which shifts when a document is re-chunked.** This bit once:
 the §5c quarantine renumbered every later Irish chunk and six labels silently pointed at the wrong

@@ -39,14 +39,37 @@ negative. The change is recorded in the file's `label_note`.
 not if it is merely on the same topic. A chunk that mentions sugar is not relevant to "how much free
 sugar" unless it states a limit.
 
-> **These labels are one person's judgement and should be reviewed.** Every number below inherits
-> them. The honest caveat is that the labeller also wrote the retriever.
+### The labels were reviewed, and four were wrong
+
+Reviewed end-to-end on 2026-10-05, after the first calibration. **Four of 44 labels did not survive
+the review's own rule** and were removed; each removal is recorded in that question's `label_note`.
+
+| question | removed | why |
+|---|---|---|
+| q05 — how should a restaurant dispose of used cooking oil? | `fssai:4` | Describes the *problem* ("disposed of in an environmentally hazardous manner") and gives no guidance. `fssai:5` has the procedures |
+| q06 — how many servings of vegetables and fruit? | `ie-doh:11` | Ends *"Servings a day"* with no number — a column heading whose value was in the graphic and did not survive extraction |
+| q08 — how much salt or sodium is too much? | `who:7` | States that sodium raises blood pressure; gives no quantity. The 5 g limit is in `who:8`, still labelled |
+| q11 — what temperature do I need to reheat food to? | `fsanz:13` | Gives method and duration ("rolling boil", "15–20 minutes"), not a temperature. `fsanz:12` has the 60 °C requirement |
+
+**One borderline case was kept**, with the reasoning recorded: q17 asks what is on the Food Pyramid's
+top shelf, and the chunk's *body* never names the foods — the answer is only in its section heading,
+*"Foods and drinks high in fat, sugar and salt"*. That counts, because the heading is embedded into
+the chunk's vector by `Chunk.embedding_input()` and appears in the citation, so a reader following
+it does get the answer. The four removals are different in kind: there the information is absent
+from the chunk entirely.
+
+Effect on the measurements: **recall@8 unchanged at 0.975**, recall@1 improved 0.575 → 0.633 (the
+honest direction — the system had been penalised for not finding chunks with no answer in them), and
+**the floor band did not move**. 32 labels remain across 20 questions.
+
+> **Still one person's judgement.** The review caught four errors, but the reviewer was also the
+> author of both the labels and the retriever. A second reader would still be worth having.
 
 ## 2. recall@k
 
 | k | recall | questions with every label found |
 |---|---|---|
-| 1 | 0.500 | 4/20 |
+| 1 | 0.633 | 8/20 |
 | 3 | 0.825 | 14/20 |
 | 5 | 0.917 | 16/20 |
 | **8** | **0.975** | **19/20** |
@@ -195,7 +218,7 @@ gate. It is now carrying the weight it was designed for rather than the weight i
 
 ## 7. Latency
 
-Median **8.7 ms**, max 12.5 ms, over 28 queries — embedding plus exact cosine scan, model loaded
+Median **7.8 ms**, over 28 queries — embedding plus exact cosine scan, model loaded
 once outside the loop.
 
 This retires the ANN question for now: at ~103 chunks an exact scan is well inside budget, and
@@ -216,8 +239,8 @@ roughly 50k chunks ([architecture.md §2](./architecture.md)).
 
 ## 9. What this does not establish
 
-- **The labels are unreviewed.** Every number inherits them, and the labeller also wrote the
-  retriever.
+- **The labels were reviewed once, by their author.** Four errors were found and fixed (§1); a
+  second reader would still be worth having, since the same person wrote the retriever.
 - **Labels are keyed by `slug:ordinal`, which shifts when a document is re-chunked.** This already
   bit once: quarantining two passages renumbered every later Irish chunk and six labels silently
   pointed at the wrong text, dropping recall 0.975 → 0.800 in a way that looked exactly like a real

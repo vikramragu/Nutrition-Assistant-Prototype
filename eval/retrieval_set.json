@@ -2,7 +2,7 @@
   "_about": {
     "purpose": "Hand-labelled set for calibrating retrieval (implementation-plan.md Phase 2.4). Retrieval only -- no generation call, no API cost.",
     "corpus_snapshot": "backend/corpus/corpus_snapshot.jsonl.gz",
-    "labelled": "2026-10-05, after the reading-order fix that corrected every DGA section heading",
+    "labelled": "2026-10-05. Reviewed end-to-end the same day: 4 of 44 labels removed as not actually answering their question, 1 borderline kept with the reason recorded. Each change is in that question's `label_note`.",
     "chunk_key": "document_slug:ordinal, as stored in chunks.chunk_key",
     "relevant": "A chunk is relevant if it CONTAINS the guidance that answers the question -- not if it is merely on the same topic. A chunk that mentions sugar is not relevant to 'how much free sugar' unless it states a quantity or a limit.",
     "out_of_corpus": "relevant is deliberately empty. These exist to set the floor: the best score any of them reaches is the number the floor has to clear.",
@@ -50,18 +50,18 @@
       "question": "How should a restaurant dispose of used cooking oil?",
       "kind": "in_corpus",
       "relevant": [
-        "fssai-used-cooking-oil-2018:4",
         "fssai-used-cooking-oil-2018:5"
-      ]
+      ],
+      "label_note": "Reviewed 2026-10-05: dropped. The chunk describes the PROBLEM with current UCO disposal ('either not discarded at all or disposed of in an environmentally hazardous manner') and gives no guidance on what a restaurant should do. fssai:5 carries the actual procedures."
     },
     {
       "id": "q06",
       "question": "How many servings of vegetables and fruit should I eat each day?",
       "kind": "in_corpus",
       "relevant": [
-        "usda-hhs-dga-2025:6",
-        "ie-doh-food-pyramid-2016:11"
-      ]
+        "usda-hhs-dga-2025:6"
+      ],
+      "label_note": "Reviewed 2026-10-05: dropped. The chunk ends 'Servings a day' with no number -- a column heading whose value was in the graphic and did not survive extraction. It does not state how many servings."
     },
     {
       "id": "q07",
@@ -76,10 +76,10 @@
       "question": "How much salt or sodium is too much?",
       "kind": "in_corpus",
       "relevant": [
-        "who-healthy-diet-2026:7",
         "who-healthy-diet-2026:8",
         "usda-hhs-dga-2025:12"
-      ]
+      ],
+      "label_note": "Reviewed 2026-10-05: dropped. States that high sodium raises blood pressure but gives no quantity. The actual limit ('less than 5 grams per day') is in who:8, which remains labelled."
     },
     {
       "id": "q09",
@@ -104,9 +104,9 @@
       "question": "What temperature do I need to reheat food to?",
       "kind": "in_corpus",
       "relevant": [
-        "fsanz-temperature-control-2002:12",
-        "fsanz-temperature-control-2002:13"
-      ]
+        "fsanz-temperature-control-2002:12"
+      ],
+      "label_note": "Reviewed 2026-10-05: dropped. Gives the method and duration for reheating ('rolling boil', '15-20 minutes') but not a temperature, which is what the question asks. fsanz:12 carries the 60 C requirement."
     },
     {
       "id": "q12",
@@ -159,7 +159,8 @@
       "kind": "in_corpus",
       "relevant": [
         "ie-doh-food-pyramid-2016:5"
-      ]
+      ],
+      "label_note": "Reviewed 2026-10-05: kept. The body never names the foods -- the answer is in the section heading 'Foods and drinks high in fat, sugar and salt'. That counts: the heading is embedded into the chunk's vector by Chunk.embedding_input() and is shown in the citation, so a reader following it does get the answer. Distinct from the labels dropped in q05/q06/q08, where the information is absent from the chunk entirely."
     },
     {
       "id": "q18",
