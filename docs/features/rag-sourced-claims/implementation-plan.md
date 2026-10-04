@@ -142,13 +142,15 @@ guessed.** This resolves [problemStatement.md §11.2](./problemStatement.md).
 - `eval/run_retrieval_eval.py` — recall@k and floor precision, no generation call.
 - Sweep `floor` and `k`; pick values from the curve and record why.
 
-**Exit criteria**
-- [ ] Retrieval across all documents works; retrieval filtered to one named document works.
-- [ ] Labelled retrieval set exists, including out-of-corpus questions.
-- [ ] recall@k reported for at least three values of `k`.
-- [ ] **`floor` chosen from measured data**, with the number and its justification written down.
-- [ ] A question known to be outside the corpus returns zero chunks above the floor.
-- [ ] Query latency measured (expect single-digit ms + ~4 ms embedding).
+**Exit criteria** — all met, evidence in [retrieval-calibration.md](./retrieval-calibration.md)
+- [x] Retrieval across all documents works; retrieval filtered to one named document works.
+- [x] Labelled retrieval set exists, including out-of-corpus questions — 20 in-corpus, 6 out.
+- [x] recall@k reported for at least three values of `k` — five: 0.500 / 0.825 / 0.917 / 0.975 / 0.975
+      at k = 1 / 3 / 5 / 8 / 10.
+- [x] **`floor` chosen from measured data**, with the number and its justification written down —
+      **0.65**, from a band of 0.63–0.70 that separates the set perfectly.
+- [x] A question known to be outside the corpus returns zero chunks above the floor — 6/6.
+- [x] Query latency measured — median **9.9 ms**, max 74.1 ms (first query pays ONNX warm-up).
 
 > **This phase is the single highest-leverage one in the plan.** The floor is the not-in-corpus
 > refusal. Calibrate it here, against retrieval alone, and a later wrong answer is unambiguously the

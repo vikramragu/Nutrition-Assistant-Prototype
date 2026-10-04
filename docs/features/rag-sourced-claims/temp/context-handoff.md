@@ -4,7 +4,8 @@
 reasons* — the part that lives in conversation rather than in code. Everything else is on disk and
 can be read directly.
 
-**Status as of 2026-10-05:** Phases 2.0 – 2.3 complete and verified. **Phase 2.4 is next.**
+**Status as of 2026-10-05:** Phases 2.0 – 2.4 complete and verified. **Phase 2.5 (answer layer and
+citation validation) is next.**
 
 > This is a working memo, not a specification. Where it disagrees with
 > [`architecture.md`](../architecture.md) or [`implementation-plan.md`](../implementation-plan.md),
@@ -111,6 +112,101 @@ with `• ` so `_looks_structured()` recognises them.
 found by *looking at the data*, not by running the code. Phase 2.4's labelled set exists for the
 same reason.
 
+## 5b. Every heading was attached to the wrong section
+
+The most serious defect found in Phase 2 so far. Fixed 2026-10-05 in `parse._reading_order`. Read
+this one before touching the parser.
+
+### What a PDF actually is
+
+A PDF does not store a document. It stores a pile of text boxes, each saying *"put this text at
+this spot on the page."* **The order the boxes are stored in does not have to match the order a
+person reads them.** The page still looks right, because every box carries its coordinates.
+
+Our parser read the boxes in stored order. That was the whole bug.
+
+### The example
+
+Page 3 of the US Dietary Guidelines, as a person sees it:
+
+```text
+Gut Health                                ← heading
+• Your gut contains trillions of bacteria...
+
+Eat Vegetables & Fruits                   ← heading
+• Eat a variety of colorful vegetables and fruits...
+```
+
+The order those boxes are stored in:
+
+```text
+• Your gut contains trillions of bacteria...
+Gut Health                                ← heading comes AFTER its own bullets
+• Eat a variety of colorful vegetables and fruits...
+Eat Vegetables & Fruits                   ← and again
+```
+
+`chunk._sections()` walked that list and reasoned, correctly: *"I just saw a heading, so what
+follows belongs under it."* It therefore filed the **vegetables** text under **Gut Health**. Every
+heading in the document shifted one section down. `_sections()` was never wrong — its input was.
+
+### Why it mattered, twice
+
+1. **The citation pointed at the wrong place.** "Eat a variety of colourful vegetables — *Dietary
+   Guidelines for Americans, § Gut Health*." Open the PDF, turn to Gut Health, find text about
+   bacteria. A checkable citation is the entire point of this milestone.
+2. **It poisoned the search index.** `Chunk.embedding_input()` glues the heading onto the front of
+   the text before embedding, so the vegetables chunk was indexed as partly about gut health.
+
+### The part worth sitting with
+
+**Nothing broke.** No error, no warning, no crash. Every chunk had a real heading that genuinely
+appeared in that document — just not *that chunk's* heading. Output looked entirely reasonable.
+
+It was found only because Phase 2.4 required reading all 105 chunks by hand to build the eval set.
+No test would have caught it. And a "known limitation" had already been recorded against the wrong
+component for a whole phase: *"fruit and vegetable portions returns DGA § Gut Health — retrieval
+weakness."* Retrieval was finding exactly the right text. The label on it was wrong.
+
+### Two fixes that failed first
+
+Each failure is why the final shape is what it is — do not "simplify" it back.
+
+| Attempt | Why it failed |
+|---|---|
+| Sort boxes by `(y, x)` (PyMuPDF's `sort=True`) | Headings correct, but the DGA's two bullet columns interleave: *"…nutrient-dense protein **+ Consume meat with no…**"*, spliced mid-sentence |
+| Bands, with columns split at the page midpoint | DGA correct, but **FSANZ regressed 6 → 11 severed chunks**. FSANZ is single-column from x=147 to x=497 on a 595pt page, so a midpoint test files its long lines as "right column" and its short ones as "left" |
+
+### What works
+
+`parse._reading_order`: group boxes into **bands** delimited by headings, detect columns **within
+each band** by finding a vertical strip no body box crosses, then order band → heading → column → y.
+
+- **Per band, not per page**, because one DGA page sets three cards in two columns and a fourth full
+  width. No single page-wide gutter describes that page.
+- **Headings excluded from the gutter test**, because they span both columns and would mask it.
+- **No gutter found → plain top-to-bottom**, so single-column documents are untouched.
+
+Result: 105 chunks before and after, FSANZ byte-identical, every DGA heading correct.
+
+### Then the fix nearly didn't land
+
+Re-running the loader after fixing the parser printed `skipped=7, chunks written=0` — "nothing
+changed." It decides whether a document needs reloading by hashing the **original PDF bytes**. The
+PDFs had not changed; only our reading of them had. So it skipped everything, kept every wrong
+heading, and reported success.
+
+That is arguably worse than the original bug: a tool claiming to be up to date when it is not.
+`corpus.seed` now also fingerprints the chunking itself — ordinal, heading, text — so the skip means
+what it says.
+
+### Three lessons, which are really one
+
+- The defect was **invisible in the code and visible in the data**. Look at the data.
+- **Two of the three defects filed against the chunker were actually the parser.** Check where the
+  input comes from before blaming the thing that consumes it.
+- **"Idempotent" has to mean idempotent with respect to the thing you actually changed.**
+
 ## 6. Other defects found by running it — all fixed
 
 | Defect | Why it mattered |
@@ -126,12 +222,16 @@ same reason.
 
 ## 7. Known limitations — recorded, not solved
 
-- **The 400/64 chunking parameters are reasoned, not measured.** Phase 2.4 owes recall@k.
-- **"How many portions of fruit and vegetables a day?"** returns DGA § *Gut Health* at 0.758 — a
-  plausible score for the wrong section. The clearest known retrieval weakness.
-- **The Irish food pyramid fragments badly**: 20 chunks, median 77 tokens. It is a poster, not prose.
-- **One 3-token chunk** (`usda-hhs-dga-2025:24` = `'January 2026'`). `MIN_CHUNK_TOKENS` merges
-  forward but not on a section's final flush.
+- ~~The 400/64 chunking parameters are reasoned, not measured.~~ **Measured in Phase 2.4:**
+  recall@8 = 0.975. See [retrieval-calibration.md](../retrieval-calibration.md).
+- ~~"How many portions of fruit and vegetables a day?" returns DGA § *Gut Health*.~~ **This was never
+  a retrieval weakness.** Retrieval had the right chunk; the *heading* was wrong, one section behind,
+  because of the PDF block-order bug in §5b. Filed against the wrong component for a whole phase.
+- **The Irish food pyramid fragments badly**: 19 chunks, median ~77 tokens. It is a poster, not prose.
+- ~~One 3-token chunk.~~ **Resolved** by the same block-order fix; the smallest chunk is now 40 tokens.
+- **q02 is the one labelled chunk retrieval misses.** FSANZ `:6` states the fridge temperature in
+  statutory phrasing with none of the question's vocabulary, so nine plainer chunks outrank it. Not
+  harmful — `:8` says the same thing and ranks first.
 - **No verified machine-readable table anywhere in the corpus.** An earlier claim that FSANZ had
   dense time/temperature tables was wrong — `find_tables()` found 2, both bulleted prose misread as
   grids. The FSANZ swap was still right, but for the 2-hour/4-hour guide and the 5–60 °C danger zone,
@@ -140,17 +240,29 @@ same reason.
 - **Phase 1 legacy-row compatibility is only vacuously verified** — the local `claims` table is empty.
 - The folder is still `rag-sourced-claims`; `guidance-retrieval` was suggested and never actioned.
 
-## 8. Early floor evidence (four questions — a sanity check, not a calibration)
+## 8. Retrieval, as measured in Phase 2.4
 
-| Query | Top hit | Score |
-|---|---|---|
-| cooked food out of the fridge | FSANZ § Temperature control | 0.778 |
-| how much free sugar | WHO § Sugars | 0.827 |
-| reuse frying oil | FSSAI § Handling and disposal | 0.800 |
-| **capital of France** | *(noise)* | **0.440** |
+Full record: [retrieval-calibration.md](../retrieval-calibration.md). Labelled set:
+`eval/retrieval_set.json` (20 in-corpus + 6 out-of-corpus). Re-run with
+`backend/.venv/bin/python eval/run_retrieval_eval.py` — no Groq credits.
 
-0.78–0.83 in-corpus against 0.44 out suggests a floor near 0.55–0.65. **Phase 2.4 must replace this
-with a measured sweep.**
+| k | 1 | 3 | 5 | **8** | 10 |
+|---|---|---|---|---|---|
+| recall | 0.500 | 0.825 | 0.917 | **0.975** | 0.975 |
+
+**`floor = 0.65`, `k = 8`.** In-corpus top-1 spans 0.709–0.873; out-of-corpus 0.440–0.627. Anything
+in 0.63–0.70 separates the set perfectly.
+
+0.65 rather than the 0.665 midpoint because architecture §7.3 makes the model's `answers_question`
+the stronger gate, so the floor should fail toward a wasted model call, never toward a wrong
+refusal — a refusal is terminal. Not 0.63 either: its margin over the worst out-of-corpus score is
+0.003, which is perfect on this sample and worth nothing on the next question.
+
+Latency: median 9.9 ms. This is what retires the ANN-index question for now.
+
+**What it does not establish:** the labels are unreviewed, 26 questions is a calibration not a
+guarantee, and nothing here tests *answering* — that is Phase 2.5, and this phase exists so that
+failure can be attributed cleanly when it happens.
 
 ## 9. Working agreements
 
@@ -165,37 +277,49 @@ with a measured sweep.**
 
 ```text
 docs/features/rag-sourced-claims/
-  problemStatement.md     the brief, merged and annotated
-  architecture.md         16 sections; §1 principle, §5 parsing, §6 data model, §12 deploy
-  implementation-plan.md  phases 2.0 – 2.10 with exit criteria
-  ingestion-report.md     evidence: §1–6 = 2.1, §7 = 2.2, §9 = 2.3
-  temp/context-handoff.md this file
+  problemStatement.md       the brief, merged and annotated
+  architecture.md           16 sections; §1 principle, §5 parsing, §6 data model, §7 retrieval
+  implementation-plan.md    phases 2.0 – 2.10 with exit criteria
+  ingestion-report.md       evidence: §1–6 = 2.1, §7 = 2.2, §9 = 2.3 (§9.5–9.6 = the block-order fix)
+  retrieval-calibration.md  evidence: 2.4 — recall@k, the floor sweep, why 0.65
+  temp/context-handoff.md   this file
 
 backend/corpus/
   corpus.yaml  fetch.py  parse.py  chunk.py  ingest.py  snapshot.py
   ids.py  seed.py  show.py          corpus_snapshot.jsonl.gz  ← the artifact of record
-backend/services/embeddings.py
+backend/services/embeddings.py   retriever.py
+backend/routers/corpus.py
 backend/alembic/versions/b1c7e4a92f08_rag_corpus_tables.py
+eval/retrieval_set.json   run_retrieval_eval.py
 ```
 
 ```bash
 cd backend && source .venv/bin/activate
-python -m corpus.show                  # inspect chunks
-python -m corpus.seed                  # idempotent
-python -m alembic current              # expect b1c7e4a92f08 (head)
-pytest -q                              # 38 passing
+pip install -r requirements-ingest.txt   # runtime + parsers; needed to re-ingest
+python -m corpus.show                    # inspect chunks
+python -m corpus.ingest --use-cache --snapshot corpus/corpus_snapshot.jsonl.gz
+python -m corpus.seed                    # idempotent
+python -m alembic current                # expect b1c7e4a92f08 (head)
+pytest -q                                # 59 passing
+
+cd .. && backend/.venv/bin/python eval/run_retrieval_eval.py   # recall@k + floor sweep
 ```
 
-## 11. Next: Phase 2.4
+## 11. Next: Phase 2.5 — the answer layer
 
-The phase flagged in the plan as **highest-leverage**, because *the floor is the not-in-corpus
-refusal*. Calibrate it against retrieval alone and a later wrong answer is unambiguously the model's
-fault; skip it and every downstream failure has two candidate causes.
+Retrieval is calibrated, so any wrong answer from here is attributable to generation rather than to
+retrieval. That was the whole point of doing 2.4 first.
 
-- `services/retriever.py` — exact cosine, optional `document_id` filter
-- `GET /corpus` — name, publisher, year, url, retrieval date, chunk count
-- `eval/retrieval_set.json` — hand-labelled relevant chunk ids, **including out-of-corpus questions**
-- `eval/run_retrieval_eval.py` — recall@k and floor precision, no generation call
-- Sweep `floor` and `k`; record the chosen numbers *and why*
+- **One model call per document**, never one call with all chunks — this is what makes blending two
+  publishers' guidance *unrepresentable* rather than merely discouraged (architecture §7.2).
+- `DocumentAnswer.answers_question` is a schema-forced field, so "this document has nothing to say"
+  is a first-class output rather than something inferred from a score. It is **gate 2**, and
+  deliberately the stronger of the two gates.
+- **Citation validation is mechanical.** Every `CitedClaim.source.chunk_id` must resolve to a chunk
+  that was actually retrieved for that turn; an unresolvable citation is a failed response, not a
+  warning.
+- The response contract changes — `claims[].source` becomes required and non-nullable. Architecture
+  §8.1 explains why per-document answering, not citation, is what forces it.
 
-The labelling needs the user's review — that judgement is what every later number rests on.
+**Outstanding from 2.4:** the eval labels are one person's judgement and should be reviewed. Every
+number in [retrieval-calibration.md](../retrieval-calibration.md) rests on them.

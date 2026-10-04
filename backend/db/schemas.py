@@ -72,3 +72,32 @@ class ChatRefusedResponse(BaseModel):
     type: Literal["refused"] = "refused"
     reason: ScopeCategory
     message: str
+
+
+class DocumentRef(BaseModel):
+    """The minimum a citation needs to be checkable by hand (architecture.md §8.2).
+
+    `year` is nullable because three corpus documents state no publication year, and the
+    brief forbids inventing one.
+    """
+
+    id: uuid.UUID
+    name: str
+    publisher: str
+    year: int | None
+    url: str
+
+
+class CorpusDocumentRead(DocumentRef):
+    """One row of `GET /corpus` — what the assistant searched, and how current it is."""
+
+    year_source: str
+    retrieval_date: datetime
+    page_last_updated: str | None
+    chunk_count: int
+
+
+class CorpusResponse(BaseModel):
+    documents: list[CorpusDocumentRead]
+    chunk_count: int
+    embedding_model: str

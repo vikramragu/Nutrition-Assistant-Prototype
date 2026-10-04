@@ -1,0 +1,181 @@
+{
+  "_about": {
+    "purpose": "Hand-labelled set for calibrating retrieval (implementation-plan.md Phase 2.4). Retrieval only -- no generation call, no API cost.",
+    "corpus_snapshot": "backend/corpus/corpus_snapshot.jsonl.gz",
+    "labelled": "2026-10-05, after the reading-order fix that corrected every DGA section heading",
+    "chunk_key": "document_slug:ordinal, as stored in chunks.chunk_key",
+    "relevant": "A chunk is relevant if it CONTAINS the guidance that answers the question -- not if it is merely on the same topic. A chunk that mentions sugar is not relevant to 'how much free sugar' unless it states a quantity or a limit.",
+    "out_of_corpus": "relevant is deliberately empty. These exist to set the floor: the best score any of them reaches is the number the floor has to clear.",
+    "caveat": "Labels are one person's judgement over a 105-chunk corpus and should be reviewed. Where retrieval and the label disagreed, each case was re-read and the resolution is noted in `label_note`."
+  },
+  "questions": [
+    {
+      "id": "q01",
+      "question": "How much free sugar should I eat per day?",
+      "kind": "in_corpus",
+      "relevant": ["who-healthy-diet-2026:3"]
+    },
+    {
+      "id": "q02",
+      "question": "What temperature should a fridge keep food at?",
+      "kind": "in_corpus",
+      "relevant": ["fsanz-temperature-control-2002:6", "fsanz-temperature-control-2002:8"]
+    },
+    {
+      "id": "q03",
+      "question": "How long can cooked food safely sit out at room temperature?",
+      "kind": "in_corpus",
+      "relevant": ["fsanz-temperature-control-2002:15", "fsanz-temperature-control-2002:16"]
+    },
+    {
+      "id": "q04",
+      "question": "Can I reuse oil that I have already fried food in?",
+      "kind": "in_corpus",
+      "relevant": [
+        "fssai-used-cooking-oil-2018:1",
+        "fssai-used-cooking-oil-2018:2",
+        "fssai-used-cooking-oil-2018:5"
+      ]
+    },
+    {
+      "id": "q05",
+      "question": "How should a restaurant dispose of used cooking oil?",
+      "kind": "in_corpus",
+      "relevant": ["fssai-used-cooking-oil-2018:4", "fssai-used-cooking-oil-2018:5"]
+    },
+    {
+      "id": "q06",
+      "question": "How many servings of vegetables and fruit should I eat each day?",
+      "kind": "in_corpus",
+      "relevant": ["usda-hhs-dga-2025:6", "ie-doh-food-pyramid-2016:12"]
+    },
+    {
+      "id": "q07",
+      "question": "How much total fat should an adult eat?",
+      "kind": "in_corpus",
+      "relevant": ["who-healthy-diet-2026:5"]
+    },
+    {
+      "id": "q08",
+      "question": "How much salt or sodium is too much?",
+      "kind": "in_corpus",
+      "relevant": [
+        "who-healthy-diet-2026:7",
+        "who-healthy-diet-2026:8",
+        "usda-hhs-dga-2025:12"
+      ]
+    },
+    {
+      "id": "q09",
+      "question": "What should a baby be fed in the first six months of life?",
+      "kind": "in_corpus",
+      "relevant": ["who-healthy-diet-2026:11", "usda-hhs-dga-2025:13"]
+    },
+    {
+      "id": "q10",
+      "question": "What is the weekly lower risk limit for alcohol?",
+      "kind": "in_corpus",
+      "relevant": ["ie-doh-food-pyramid-2016:3", "usda-hhs-dga-2025:11"]
+    },
+    {
+      "id": "q11",
+      "question": "What temperature do I need to reheat food to?",
+      "kind": "in_corpus",
+      "relevant": ["fsanz-temperature-control-2002:12", "fsanz-temperature-control-2002:13"]
+    },
+    {
+      "id": "q12",
+      "question": "How much protein do I need?",
+      "kind": "in_corpus",
+      "relevant": ["usda-hhs-dga-2025:3", "who-healthy-diet-2026:6"]
+    },
+    {
+      "id": "q13",
+      "question": "What is My Plate for the Day?",
+      "kind": "in_corpus",
+      "relevant": [
+        "icmr-nin-my-plate-2024:1",
+        "icmr-nin-my-plate-2024:2",
+        "icmr-nin-my-plate-2024:6"
+      ]
+    },
+    {
+      "id": "q14",
+      "question": "What are the five keys to safer food?",
+      "kind": "in_corpus",
+      "relevant": ["who-five-keys-2013:0", "who-five-keys-2013:1"]
+    },
+    {
+      "id": "q15",
+      "question": "Should I choose whole grains over refined grains?",
+      "kind": "in_corpus",
+      "relevant": ["usda-hhs-dga-2025:8", "ie-doh-food-pyramid-2016:11"]
+    },
+    {
+      "id": "q16",
+      "question": "How much fluid should I drink a day?",
+      "kind": "in_corpus",
+      "relevant": ["ie-doh-food-pyramid-2016:7"]
+    },
+    {
+      "id": "q17",
+      "question": "What foods are on the top shelf of the Food Pyramid?",
+      "kind": "in_corpus",
+      "relevant": ["ie-doh-food-pyramid-2016:6"]
+    },
+    {
+      "id": "q18",
+      "question": "What are the nutrition recommendations during pregnancy?",
+      "kind": "in_corpus",
+      "relevant": ["usda-hhs-dga-2025:19"]
+    },
+    {
+      "id": "q19",
+      "question": "Which foods are good sources of healthy fats?",
+      "kind": "in_corpus",
+      "relevant": ["usda-hhs-dga-2025:7", "ie-doh-food-pyramid-2016:8"]
+    },
+    {
+      "id": "q20",
+      "question": "How often should I eat oily fish?",
+      "kind": "in_corpus",
+      "relevant": ["ie-doh-food-pyramid-2016:9"]
+    },
+    {
+      "id": "q21",
+      "question": "What is the capital of France?",
+      "kind": "out_of_corpus",
+      "relevant": []
+    },
+    {
+      "id": "q22",
+      "question": "How do I fix a puncture in a bicycle tyre?",
+      "kind": "out_of_corpus",
+      "relevant": []
+    },
+    {
+      "id": "q23",
+      "question": "What is the recommended dose of metformin for type 2 diabetes?",
+      "kind": "out_of_corpus",
+      "relevant": []
+    },
+    {
+      "id": "q24",
+      "question": "Which programming language should I learn first?",
+      "kind": "out_of_corpus",
+      "relevant": []
+    },
+    {
+      "id": "q25",
+      "question": "How should I train for my first marathon?",
+      "kind": "out_of_corpus",
+      "relevant": []
+    },
+    {
+      "id": "q26",
+      "question": "What were the sales figures for electric cars in Norway last year?",
+      "kind": "out_of_corpus",
+      "relevant": []
+    }
+  ]
+}
