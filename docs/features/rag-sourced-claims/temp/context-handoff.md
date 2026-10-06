@@ -4,10 +4,11 @@
 reasons* — the part that lives in conversation rather than in code. Everything else is on disk and
 can be read directly.
 
-**Status as of 2026-10-06:** Phases 2.0 – 2.8 complete; **2.9 code-complete but not deployed** —
-four of its six exit criteria need Railway/Vercel access and are a runbook, not done. 189 backend
-tests pass, frontend builds clean. **Next: run the 2.9 runbook, then 2.10 (failure log + README),
-which needs the deployed URL.**
+**Status as of 2026-10-06 20:40:** Phases 2.0 – 2.8 complete. **2.9 code-complete, deploy in
+progress** — Railway is pointed at `phase-2-rag-corpus`, the first build failed on a GitHub outage
+(not our code), and `railway.json` has still never produced a successful build. 189 backend tests
+pass, frontend builds clean. **Backend and frontend are on different versions right now — see §16
+before testing.** Next: finish the §16 runbook, then 2.10, which needs the deployed URL.
 
 > This is a working memo, not a specification. Where it disagrees with
 > [`architecture.md`](../architecture.md) or [`implementation-plan.md`](../implementation-plan.md),
@@ -595,7 +596,7 @@ with every citation intact and a Phase 1 uncited row dropped rather than rendere
 looked at** — layout, dark mode, hit targets and the panel's scrolling are reasoned from CSS only.
 frontend.md §4.2 has the commands to look.
 
-## 15. Phase 2.9, as built — code done, NOT deployed
+## 15. Phase 2.9, as built — code done; deploy in progress
 
 Full record and runbook: [deployment.md](../deployment.md). **§4 is the part that needs your
 credentials**; the working agreement that no production credential enters a transcript is why the
@@ -638,16 +639,75 @@ reported 200.8 MB because the HuggingFace cache hardlinks each blob into `snapsh
 `st_size` (actual: 64 MiB, cross-checked with `du`); and in 2.8 an attribution detector matched the
 pronoun "who" as the organization. Neither failed; both printed a plausible wrong number.
 
-## 16. Next: run the 2.9 runbook, then 2.10
+## 16. The deploy, as of 2026-10-06 20:40 — state and gotchas
 
-- **2.10** inherits a real finding to chase: the corpus answers only 5 of the 20 regression
-  questions, so answer quality rests on 5 questions and 14 claims. Its ten fixed questions are
-  weighted toward what the corpus covers, and it reruns the numeric ones for `inconsistent_number`,
-  which a single pass cannot detect.
+Two commits pushed: `5b3e97c` (phases 2.5–2.9) and `2a1e49a` (the Railpack fix).
+`origin/phase-2-rag-corpus` == local HEAD.
 
-**Known, deferred, written down:** `RETRIEVAL_K`/`RETRIEVAL_FLOOR` are still constants, not env vars
-(2.9); a coverage refusal cannot be traced to its conversation, because `retrievals` reaches one only
-through `message_id`, which is null for those rows; nothing has run against the deployed system.
+### Railway, current settings
+
+| Setting | Value |
+|---|---|
+Branch connected to production | **`phase-2-rag-corpus`** — *not* main |
+Root Directory | `backend` |
+Auto deploy | was "unavailable", now "disabled" with an Enable toggle |
+Builder | **Railpack** v0.40.1 |
+Credit remaining | **$4.43 / 19 days** — budget the verification into one session |
+
+### The first deploy failed, and it was not our code
+
+`ERRO failed to ensure mise is installed` — Railpack could not download its own bootstrap
+tool because **GitHub returned 500**. Died at 17 s, before our repo mattered. The same outage
+produced "Could not load branches" (so Railway showed `main` because that was the *stored*
+value, not an enumerated option) and "Auto deploy unavailable". **One cause, three symptoms**,
+all cleared when GitHub recovered. Retry is the whole fix.
+
+### Still unverified, and it is the one that matters
+
+`backend/railway.json` has **never produced a successful build**. Watch the build log for:
+
+```text
+prefetching BAAI/bge-small-en-v1.5 into .../.fastembed_cache
+ok: 384 dimensions, 17 unique file(s), 67 MB on disk
+```
+
+Absent → Railpack did not pick up the config. Fallbacks in order: set **Config-as-code** to
+`/backend/railway.json` (worth setting proactively — Railway's docs say config files need an
+absolute path when a root directory is set, and ours is `backend`), then Settings → Build →
+Build Command.
+
+### ⚠️ Frontend and backend are on different versions right now
+
+Railway → `phase-2-rag-corpus` (new backend, returns `document_answers`).
+Vercel production → `main` (Phase 1 frontend, expects a flat `answer` string).
+
+**They are incompatible.** The production Vercel URL will not render answers against this
+backend. To test the full flow before merging, either use a Vercel preview deploy of the
+branch, or run the frontend locally — and in **both** cases add the origin to Railway's
+`ALLOWED_ORIGINS`, which is currently set to the production Vercel URL only. CORS is the
+thing that will waste half an hour otherwise.
+
+The backend alone is testable immediately with `curl` — `/health`, `/corpus`, and all three
+`/chat` response types.
+
+### Remember to switch back
+
+After verification: Railway → Branch → `main`, then merge `phase-2-rag-corpus`. Leaving
+production pinned to a feature branch is invisible until someone pushes to main and nothing
+happens.
+
+## 17. Next: finish the 2.9 runbook, then 2.10
+
+- **2.10** needs the deployed URL — its ten questions run against production, so the runbook
+  genuinely blocks it. It also inherits a real finding: the corpus answers only 5 of the 20
+  regression questions, so answer quality rests on 5 questions and 14 claims. Its ten fixed
+  questions are weighted toward what the corpus covers, and it reruns the numeric ones for
+  `inconsistent_number`, which a single pass cannot detect.
+
+**Known, deferred, written down:** a coverage refusal cannot be traced to its conversation,
+because `retrievals` reaches one only through `message_id`, which is null for those rows;
+`/chat` is still unrate-limited and retrieval adds an embedding per request; and **nothing has
+yet run against the deployed system**.
 
 **Not outstanding any more:** the 2.4 eval labels *were* reviewed (§8, commit `13a85e1` — four of
 44 were wrong, recall@8 unchanged). This file carried a "should be reviewed" note past that commit
