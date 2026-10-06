@@ -171,16 +171,24 @@ guessed.** This resolves [problemStatement.md §11.2](./problemStatement.md).
 - `services/answer_synthesiser.py` — group hits by document, one call per document, concurrently.
 - `services/citation_validator.py` — see below.
 
-**Exit criteria**
-- [ ] A question answerable by one document returns one `DocumentAnswerOut` with cited claims.
-- [ ] A cross-document question (cooking oil) returns **separate** answers with separate citations,
-      and no claim mixes material from two documents.
-- [ ] **A mocked model response citing a chunk id not in its context returns HTTP 502** — not a
-      dropped claim, not a repaired answer.
-- [ ] A mocked response with a non-empty answer and empty `claims` returns HTTP 502.
-- [ ] When every document returns `answers_question: false`, the result is a not-in-corpus refusal
+**Exit criteria** — evidence in [answer-layer.md](./answer-layer.md)
+- [x] A question answerable by one document returns one `DocumentAnswerOut` with cited claims.
+- [x] A cross-document question (cooking oil) returns **separate** answers with separate citations,
+      and no claim mixes material from two documents — asserted on the *prompts*, not just the
+      results: no generation call ever receives two documents' passages.
+- [x] **A mocked model response citing a chunk id not in its context returns HTTP 502** — not a
+      dropped claim, not a repaired answer. *Raised as `CitationError` in 2.5 and mapped to 502 by
+      the endpoint in 2.6.*
+- [x] A mocked response with a non-empty answer and empty `claims` returns HTTP 502.
+- [x] When every document returns `answers_question: false`, the result is a not-in-corpus refusal
       naming the **full** corpus, not just the documents that scored above the floor.
-- [ ] Lexical-overlap warnings are logged and non-blocking.
+- [x] Lexical-overlap warnings are logged and non-blocking — plus a quantity-agreement warning on
+      the same footing, the sharpest available signal for `inconsistent_number`.
+
+> **Three of these were `[~]` when 2.5 shipped**, because they are phrased as HTTP outcomes and
+> 2.5 owns no route: its deliverable list is four service files, and `routers/chat.py` is 2.6's.
+> They were closed by 2.6 and are now asserted at the endpoint — see
+> [answer-layer.md §11](./answer-layer.md).
 
 ---
 
@@ -197,16 +205,25 @@ boundary.
 - Coverage refusals persist to `retrievals` with zero `used` hits; policy refusals to
   `scope_refusals` as in Phase 1.
 
-**Exit criteria**
-- [ ] Out-of-scope question refuses **before** any embedding or retrieval call — assert via a spy,
-      not by reading the code.
-- [ ] A guidance chunk containing a calorie figure does not let a calorie-target question through.
-- [ ] A mocked answer converting population guidance into "you should…" is blocked and never
-      persisted.
-- [ ] The two refusals are distinct wire types; a client can tell them apart without parsing prose.
-- [ ] No partial writes on any failure path — user message never persisted without its assistant
-      message.
-- [ ] `GET /conversations/{id}` returns history with grouped, cited claims.
+**Exit criteria** — all met, evidence in [answer-layer.md §9–§12](./answer-layer.md)
+- [x] Out-of-scope question refuses **before** any embedding or retrieval call — assert via a spy,
+      not by reading the code. *`get_searcher` is an injected seam; the spy records zero calls.*
+- [x] A guidance chunk containing a calorie figure does not let a calorie-target question through —
+      asserted with the searcher primed with a 0.95-scoring hit, which it must still never consult.
+- [x] A mocked answer converting population guidance into "you should…" is blocked and never
+      persisted. The paired test matters more: the corpus's **own** population phrasing must not be
+      blocked, which is why the rule keys on second person rather than on "should + a number".
+- [x] The two refusals are distinct wire types; a client can tell them apart without parsing prose.
+- [x] No partial writes on any failure path — user message never persisted without its assistant
+      message. Tested by *breaking* it: a citation to a nonexistent chunk fails the flush, and the
+      user message does not survive.
+- [x] `GET /conversations/{id}` returns history with grouped, cited claims.
+
+**One migration, not in the original plan:** `messages.ordinal` with
+`UNIQUE (conversation_id, ordinal)`. A turn is now one user message plus one assistant message per
+document, written in a single commit — and Postgres `now()` is the transaction timestamp, so every
+row of that turn shares a `created_at`. Ordering by it would scramble the turn. See
+[answer-layer.md §9](./answer-layer.md).
 
 ---
 
@@ -223,14 +240,28 @@ dependencies**.
 - `types.ts`, `lib/api.ts` — new `not_in_corpus` variant; `Claim.source` widens from `null` to
   `Citation`.
 
-**Exit criteria**
-- [ ] Two-document answers render as two visibly separate blocks — visual merging would undo
-      [architecture.md §7.2](./architecture.md).
-- [ ] Every claim's citation shows document name, publisher, year, and a working link.
-- [ ] Answer, policy refusal, coverage refusal, and generic error are four distinguishable states.
-- [ ] Sources panel never shows an empty state when an answer is selected.
-- [ ] Page refresh reloads history with citations intact.
-- [ ] No new npm dependency added.
+**Exit criteria** — all met, evidence in [frontend.md](./frontend.md)
+- [x] Two-document answers render as two visibly separate blocks — visual merging would undo
+      [architecture.md §7.2](./architecture.md). Separate `<article>`s with their own borders, a
+      real 12px gap, and a publisher/year header each.
+- [x] Every claim's citation shows document name, publisher, year, and a working link — verified
+      against live payloads, including `year: null` rendering as "year not stated" rather than a gap.
+- [x] Answer, policy refusal, coverage refusal, and generic error are four distinguishable states —
+      differing in alignment, **border style** and badge text as well as hue, so the distinction
+      survives a monochrome screenshot and a red-green colour deficiency.
+- [x] Sources panel never shows an empty state when an answer is selected — structural: the citation
+      validator rejects an answer with no claims, so a selected turn always has a passage.
+- [x] Page refresh reloads history with citations intact — the grouping logic was extracted to
+      `history.ts` and run against the real `GET /conversations/{id}` payload.
+- [x] No new npm dependency added — `package.json` and `package-lock.json` unchanged.
+
+**Seven files changed, three added**, not four and one. The plan's list omitted `ChatWindow.tsx` and
+`page.tsx`, which must change for the panel to see the selected answer at all, and `history.ts` is an
+extraction made so the reload grouping could be verified without a test runner.
+
+**The appearance criteria are claimed on markup and CSS, not on a screenshot** — no browser
+automation was available, so layout, dark mode and hit targets are reasoned rather than seen.
+[frontend.md §4.2](./frontend.md) says exactly what was and was not verified, and how to look.
 
 ---
 
@@ -244,13 +275,32 @@ dependencies**.
   not-in-corpus refusal, one cross-document question, and one that tests population-level framing.
 - Run the full regression suite per [../../eval.md §2.3](../../eval.md) and read the diff.
 
-**Exit criteria**
-- [ ] Regression set includes not-in-corpus, cross-document, and personalisation cases.
-- [ ] Full regression run completed after the prompt edit.
-- [ ] **Every outcome-type flip is explained in writing** — expect several; they are the intended
-      change, which is exactly why the run must be read rather than skipped.
-- [ ] Scope cases r9–r11 still refuse.
-- [ ] Negation and informational-number cases (r12, r14) still do **not** refuse.
+**Exit criteria** — all met, evidence in
+[prompt-inversion-regression.md](./prompt-inversion-regression.md)
+- [x] Regression set includes not-in-corpus, cross-document, and personalisation cases — r17–r20,
+      and the set gained a second expectation field so the Phase 1 baseline does not move.
+- [x] Full regression run completed after the prompt edit — **two** runs, deliberately: the Phase 1
+      path on the new prompt (isolating the prompt edit) and then the RAG path on the same prompt
+      (isolating retrieval). One run would leave every flip with two candidate causes.
+- [x] **Every outcome-type flip is explained in writing** — 12 flips, all `answer → not_in_corpus`,
+      split by gate: 10 at gate 1 (topic genuinely absent) and **2 at gate 2** (the document had the
+      topic and declined anyway, r5 at score 0.743). Gate 2 is not decoration.
+- [x] Scope cases r9–r11 still refuse — all three at `pre_model`, identically on both paths.
+- [x] Negation and informational-number cases (r12, r14) still do **not** refuse — neither is
+      `refused`; both return `not_in_corpus`, which is the coverage type, not the policy one. The
+      interpretation is recorded in [§7.1](./prompt-inversion-regression.md) and in the question
+      set's own `_about` block.
+
+**The prompt rewrite is not the opposite rule.** "Always name your source" would be wrong on the
+Phase 1 path, which has none. v2 states the principle under both versions — *cite what you were
+given, and attribute to nothing else* — which is correct whether or not passages are supplied.
+Measured: 0 of 20 uncited-path responses name a source, same as under v1.
+
+**Three defects found by running it:** an unretried Groq 503 killed the first run eleven questions
+in; the DGA's own *"If you have a chronic disease, talk with your health care professional"* tripped
+the `medical_advice` guard (`over_refusal` on a referral, 1 of 159 second-person corpus sentences);
+and fixing that exposed a pre-existing `missed_scope_restriction` — "Based on that, you have
+diabetes" was **not** blocked, because the pattern made the filler before the condition mandatory.
 
 ---
 
@@ -268,14 +318,42 @@ dependencies**.
 - Railway variables: `EMBEDDING_MODEL`, `FASTEMBED_CACHE_PATH`, `RETRIEVAL_K`, `RETRIEVAL_FLOOR`.
 - Apply the migration, then run `seed.py` manually against production.
 
-**Exit criteria**
+**Exit criteria** — code done and locally verified; **four need production access**. Evidence and
+runbook in [deployment.md](./deployment.md)
 - [ ] Migration applied to Railway Postgres; `seed.py` run; chunk count matches the snapshot.
-- [ ] No ingestion in the `Procfile`; no network call to any publisher at boot.
+      *Open — needs the Railway shell. Target: head `c3d9a51e7b42`, 7 documents, 103 chunks.
+      `corpus.seed` was verified to import under runtime-only dependencies, so it can be run
+      inside the deployed container.*
+- [x] No ingestion in the `Procfile`; no network call to any publisher at boot — verified by test
+      rather than by reading: the Procfile is checked for `corpus.ingest`/`seed`/`fetch`, and a
+      subprocess import of the app is checked for every ingest-only package. A clean venv with only
+      `requirements.txt` (56 packages, no `pymupdf`/`pdfminer`/`trafilatura`) runs the app.
 - [ ] Memory headroom confirmed on the actual tier (expect ~279 MB RSS for the model alone).
-- [ ] Cold-start time measured against the deployed URL.
+      *Open. Measured locally: **351 MB for the whole process**, idle, after one request — 279 MB
+      was the model in isolation, so that is the wrong number to size a tier against.*
+- [ ] Cold-start time measured against the deployed URL. *Open. **1.37 s** locally from process
+      launch to a served `/health`, with the weights baked.*
 - [ ] Full flow verified in production: cited answer, cross-document answer, not-in-corpus refusal,
-      policy refusal, page reload.
-- [ ] No secret in the frontend bundle; `GROQ_API_KEY` still the only provider secret.
+      policy refusal, page reload. *Open — checklist in [deployment.md §4.4](./deployment.md).*
+- [x] No secret in the frontend bundle; `GROQ_API_KEY` still the only provider secret — scanned the
+      production build: no `groq`/`gsk_`/`DATABASE_URL`/postgres URL in any asset, and
+      `NEXT_PUBLIC_API_BASE_URL` is the only inlined variable. Re-confirm on the deployed bundle,
+      which inlines Vercel's value rather than the local one.
+
+**The split is deliberate.** No production credential enters a transcript — the same agreement under
+which the Phase 2.0 pgvector check was run by hand in the Railway console. Everything buildable and
+measurable without one is done; the rest is a runbook.
+
+**The riskiest part of this deploy is silent:** Nixpacks has never been run against the new
+`nixpacks.toml`, and **a skipped build phase does not fail the deploy** — it moves the 64 MiB
+download back to boot, where it costs nothing until Hugging Face is slow. Read the build log for the
+prefetch output. [../../deployment.md §5](../../deployment.md) already flagged that Nixpacks' Python
+detection was never validated here.
+
+**Found while doing this, and fixed:** `eval/runs/` was gitignored, so the Phase 1 regression runs —
+including one of the two files [prompt-inversion-regression.md](./prompt-inversion-regression.md)
+cites as evidence — could never be committed, making the 2.8 comparison unreproducible from a clone.
+`eval/rag_runs/` and `eval/failure_log_runs/` were already tracked. Now consistent.
 
 ---
 

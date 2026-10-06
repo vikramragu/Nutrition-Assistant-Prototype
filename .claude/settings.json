@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c ' *)",
+      "Bash(.venv/bin/python -)",
+      "Bash(rm -rf fe)",
+      "Bash(python3 -m venv fe)",
+      "Bash(./fe/bin/pip install *)",
+      "Bash(PYTHONPATH=. /private/tmp/claude-501/-Users-betteropinions-Development-AI-nutrition-project/6939469f-aae1-42fa-a7a1-0e2556c29886/scratchpad/ing/bin/python -m corpus.ingest --out /private/tmp/claude-501/-Users-betteropinions-Development-AI-nutrition-project/6939469f-aae1-42fa-a7a1-0e2556c29886/scratchpad/chunks.json)",
+      "Bash(python3 -)"
+    ]
+  }
+}

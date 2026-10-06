@@ -6,7 +6,11 @@
   border-radius: 12px;
   padding: 16px;
   background: var(--panel-background);
-  height: fit-content;
+  /* Was `height: fit-content`. The panel now holds quoted passages and can outgrow the
+     chat column, so it scrolls within the layout instead of stretching the page. */
+  align-self: stretch;
+  max-height: 100%;
+  overflow-y: auto;
 }
 
 .heading {
@@ -23,13 +27,21 @@
   font-size: 0.9rem;
 }
 
+/* --- Idle state: the corpus --- */
+
 .list {
-  margin: 0;
-  padding-left: 18px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .listItem {
   border-radius: 6px;
+  padding: 6px;
+  font-size: 0.88rem;
   transition: background 0.15s ease;
 }
 
@@ -37,8 +49,124 @@
   background: var(--accent-tint);
 }
 
+.listItem a {
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.listItem a:hover {
+  color: var(--accent);
+}
+
+.provenance {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* --- Selected state: the passages behind the answer --- */
+
+.citations {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.citation,
+.citationSelected {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  background: var(--background);
+}
+
+/* The highlight is a left bar plus a tinted background, not a colour change alone, so the
+   selected passage is identifiable without relying on hue. */
+.citationSelected {
+  border-color: var(--accent);
+  background: var(--accent-tint);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.citationButton {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.marker {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-foreground);
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.citationBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.documentName {
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.section {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.quote {
+  margin-top: 6px;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  border-left: 2px solid var(--border);
+  padding-left: 8px;
+  color: var(--foreground);
+  /* The quoted passage can be an oversized chunk -- a whole table or numbered list that
+     the chunker deliberately refused to split. Cap it so one long passage cannot push the
+     rest of the citations out of view; the full text is in the linked document. */
+  max-height: 11rem;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+.sourceLink {
+  display: inline-block;
+  margin-top: 8px;
+  margin-left: 28px;
+  font-size: 0.78rem;
+  text-decoration: underline;
+  color: var(--muted);
+}
+
+.sourceLink:hover {
+  color: var(--accent);
+}
+
 @media (max-width: 720px) {
   .panel {
     max-width: none;
+    max-height: none;
   }
 }

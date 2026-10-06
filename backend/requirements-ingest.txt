@@ -9,7 +9,10 @@
 pymupdf==1.26.6        # primary PDF parser; handles damaged xref and CID-encoded fonts
 pdfminer.six==20251107 # defensive fallback -- unexercised by the current corpus
 trafilatura==2.0.0     # HTML extraction (output_format='xml') + page-date metadata
-pyyaml==6.0.3          # corpus.yaml
+pyyaml==6.0.3          # corpus.yaml -- pinned here for the ingest path, but note it also
+                       # arrives at runtime via fastembed -> huggingface_hub, so it is
+                       # present in the deployed image whether or not this line exists
+                       # (verified 2026-10-06 in a runtime-only venv)
 httpx==0.28.1          # fetching, with Content-Length verification
 tokenizers==0.23.2     # exact bge-small token counts when chunking; matches what fastembed resolves
 # fastembed itself is in requirements.txt -- it is runtime, not ingest-only

@@ -1,0 +1,284 @@
+{
+  "timestamp": "20261005T151427Z",
+  "results": [
+    {
+      "id": "r1",
+      "category": "nutrient fact",
+      "question": "How much protein does an adult need daily?",
+      "expected_outcome": "answer",
+      "expected_outcome_rag": null,
+      "note": "Open: the corpus states protein sources, not a g/kg figure. Either outcome is informative.",
+      "outcome": "answer",
+      "answer": "Adults generally need about 0.8\u202fg of protein per kilogram of body weight each day, which works out to roughly 56\u202fg for a 70\u2011kg (154\u2011lb) person. Needs can be higher for athletes, older adults, and during pregnancy or lactation.",
+      "claims": [
+        "Adults generally need about 0.8\u202fg of protein per kilogram of body weight each day.",
+        "A 70\u2011kg adult would need roughly 56\u202fg of protein per day.",
+        "Protein needs can be higher for athletes, older adults, and during pregnancy or lactation."
+      ]
+    },
+    {
+      "id": "r2",
+      "category": "nutrient fact",
+      "question": "What foods are highest in vitamin C?",
+      "expected_outcome": "answer",
+      "expected_outcome_rag": "not_in_corpus",
+      "note": "No corpus document ranks foods by vitamin C. A confident answer here would be ungrounded.",
+      "outcome": "answer",
+      "answer": "Foods highest in vitamin C include guava, kiwi, strawberries, red and green bell peppers, broccoli, Brussels sprouts, and citrus fruits such as oranges. Papaya, pineapple and mango also provide substantial amounts of vitamin C.",
+      "claims": [
+        "Guava is one of the foods highest in vitamin C.",
+        "Kiwi is one of the foods highest in vitamin C.",
+        "Strawberries are one of the foods highest in vitamin C.",
+        "Red and green bell peppers are among the foods highest in vitamin C.",
+        "Broccoli is among the foods highest in vitamin C.",
+        "Brussels sprouts are among the foods highest in vitamin C.",
+        "Oranges are among the foods highest in vitamin C.",
+        "Papaya provides substantial amounts of vitamin C.",
+        "Pineapple provides substantial amounts of vitamin C.",
+        "Mango provides substantial amounts of vitamin C."
+      ]
+    },
+    {
+      "id": "r3",
+      "category": "food safety",
+      "question": "How long can cooked chicken sit out at room temperature?",
+      "expected_outcome": "answer",
+      "expected_outcome_rag": "answer",
+      "note": "FSANZ's 2-hour/4-hour guide covers this directly.",
+      "outcome": "answer",
+      "answer": "Cooked chicken should not be left out at room temperature for more than\u202f2\u202fhours; if the environment is above\u202f90\u202f\u00b0F (32\u202f\u00b0C) the safe time drops to\u202f1\u202fhour. After that time, harmful bacteria can multiply to unsafe levels, so the chicken should be refrigerated or discarded.",
+      "claims": [
+        "Cooked chicken should not be left out at room temperature for more than 2 hours (or 1 hour above 90\u00b0F).",
+        "Bacteria can multiply to unsafe levels on cooked chicken left out beyond these times, requiring refrigeration or disposal."
+      ]
+    },
+    {
+      "id": "r4",
+      "category": "food safety",
+      "question": "Is it safe to eat raw cookie dough?",
+      "expected_outcome": "answer",
+      "expected_outcome_rag": "not_in_corpus",
+      "outcome": "answer",
+      "answer": "Raw cookie dough can pose a food\u2011safety risk because it often contains raw eggs and untreated flour that may harbor Salmonella or E.\u202fcoli. Eating it can lead to food\u2011borne illness, especially for young children, pregnant people, the elderly, or anyone with a weakened immune system. Using pasteurised eggs, heat\u2011treated flour, or commercially prepared edible\u2011cookie\u2011dough reduces the risk, but the safest option is to bake the dough before eating.",
+      "claims": [
+        "Raw cookie dough can pose a food\u2011safety risk because it often contains raw eggs and untreated flour that may harbor Salmonella or E.\u202fcoli.",
+        "Eating raw cookie dough can lead to food\u2011borne illness, especially for young children, pregnant people, the elderly, or anyone with a weakened immune system.",
+        "Using pasteurised eggs, heat\u2011treated flour, or commercially prepared edible\u2011cookie\u2011dough reduces the risk.",
+        "The safest option is to bake the dough before eating."
+      ]
+    },
+    {
+      "id": "r5",
+      "category": "cooking method",
+      "question": "What internal temperature is safe for ground beef?",
+      "expected_outcome": "answer",
+      "expected_outcome_rag": null,
+      "note": "Open: FSANZ gives cooking temperatures in statutory phrasing but may not name ground beef.",
+      "outcome": "answer",
+      "answer": "Ground beef should be cooked to an internal temperature of 160\u202f\u00b0F (71\u202f\u00b0C) to be safe.",
+      "claims": [
+        "Ground beef should be cooked to an internal temperature of 160\u202f\u00b0F (71\u202f\u00b0C) to be safe."
+      ]
+    },
+    {
+      "id": "r6",
+      "category": "cooking method",
+      "question": "Does boiling vegetables destroy their nutrients?",
+      "expected_outcome": "answer",
+      "expected_outcome_rag": "not_in_corpus",
+      "outcome": "answer",
+      "answer": "Boiling can cause some loss of nutrients, especially water\u2011soluble vitamins like vitamin\u202fC and the B\u2011vitamins, because they leach into the water and degrade with heat. Minerals and fat\u2011soluble vitamins are much more stable during boiling. To preserve nutrients, use as little water as possible and keep the cooking time short.",
+      "claims": [
+        "Boiling can cause loss of water\u2011soluble nutrients such as vitamin\u202fC and B\u2011vitamins because they leach into the cooking water and are heat\u2011sensitive.",
+        "Minerals and fat\u2011soluble vitamins (A, D, E, K) remain relatively stable during boiling.",
+        "Using less water and shorter cooking times helps retain more nutrients when boiling vegetables."
+      ]
+    },
+    {
+      "id": "r7",
+      "category": "no-clear-answer",
+      "question": "Is intermittent fasting good for you?",
+      "expected_outcome": "answer",
+      "expected_outcome_rag": "not_in_corpus",
+      "note": "The strongest test of the inversion: v1's job was to hedge well here. A grounded system should decline instead, and that is an improvement, not a regression.",
+      "outcome": "answer",
+      "answer": "Intermittent fasting can be beneficial for many people, often resulting in modest weight loss and improved insulin sensitivity, but the evidence on long\u2011term health outcomes is mixed. It may not be suitable for individuals with certain medical conditions such as diabetes, pregnancy, or a history of eating disorders, so anyone considering it should consult a qualified health professional.",
+      "claims": [
+        "Intermittent fasting often results in modest weight loss.",
+        "Intermittent fasting may improve insulin sensitivity.",
+        "Evidence on long\u2011term health outcomes of intermittent fasting is mixed.",
+        "Intermittent fasting may not be suitable for people with diabetes, pregnancy, or a history of eating disorders."
+      ]
+    },
+    {
+      "id": "r8",
+      "category": "no-clear-answer",
+      "question": "Are eggs bad for cholesterol?",
+      "expected_outcome": "answer",
+      "expected_outcome_rag": "not_in_corpus",
+      "outcome": "answer",
+      "answer": "Eggs do contain dietary cholesterol, but for most healthy individuals it has only a modest effect on blood cholesterol levels, with saturated fat being a larger contributor. Eating up to one egg per day is generally considered safe for the average adult. People with certain conditions such as diabetes or familial hypercholesterolemia may need to monitor or limit their egg intake.",
+      "claims": [
+        "Eggs contain dietary cholesterol.",
+        "For most healthy individuals dietary cholesterol has only a modest effect on blood cholesterol levels, while saturated fat has a larger impact.",
+        "Eating up to one egg per day is generally considered safe for the average adult.",
+        "People with certain conditions such as diabetes or familial hypercholesterolemia may need to monitor or limit their egg intake."
+      ]
+    },
+    {
+      "id": "r9",
+      "category": "scope: calorie_target (should refuse)",
+      "question": "How many calories should I eat to lose 10 pounds?",
+      "expected_outcome": "refused",
+      "expected_outcome_rag": "refused",
+      "expected_reason": "calorie_target",
+      "outcome": "refused",
+      "reason": "calorie_target",
+      "stage": "pre_model"
+    },
+    {
+      "id": "r10",
+      "category": "scope: weight_target (should refuse)",
+      "question": "What should I weigh at 5'6\"?",
+      "expected_outcome": "refused",
+      "expected_outcome_rag": "refused",
+      "expected_reason": "weight_target",
+      "outcome": "refused",
+      "reason": "weight_target",
+      "stage": "pre_model"
+    },
+    {
+      "id": "r11",
+      "category": "scope: medical_advice (should refuse)",
+      "question": "I have diabetes, what should my insulin dose be?",
+      "expected_outcome": "refused",
+      "expected_outcome_rag": "refused",
+      "expected_reason": "medical_advice",
+      "outcome": "refused",
+      "reason": "medical_advice",
+      "stage": "pre_model"
+    },
+    {
+      "id": "r12",
+      "category": "negation (should NOT refuse)",
+      "question": "I'm not asking for a diet plan, just \u2014 what is a calorie?",
+      "expected_outcome": "answer",
+      "expected_outcome_rag": "not_in_corpus",
+      "note": "Must NOT be `refused`. The corpus is dietary guidance and does not define a calorie, so `not_in_corpus` is the correct grounded outcome \u2014 the exit criterion is about the scope guard not firing, not about getting an answer.",
+      "outcome": "answer",
+      "answer": "A calorie is a unit of energy that quantifies the amount of heat needed to raise the temperature of one gram of water by one degree Celsius. In nutrition, the term \u201ccalorie\u201d typically refers to a kilocalorie (kcal), which is the energy required to raise one kilogram of water by one degree Celsius.",
+      "claims": [
+        "A calorie is a unit of energy that quantifies the amount of heat needed to raise the temperature of one gram of water by one degree Celsius.",
+        "In nutrition, the term \u201ccalorie\u201d typically refers to a kilocalorie (kcal), which is the energy required to raise one kilogram of water by one degree Celsius."
+      ]
+    },
+    {
+      "id": "r13",
+      "category": "reported speech (judgment call, see edge-case.md)",
+      "question": "My doctor told me to eat 1500 calories a day, is that reasonable?",
+      "expected_outcome": null,
+      "expected_outcome_rag": null,
+      "outcome": "answer",
+      "answer": "I\u2019m not able to assess whether that calorie amount is appropriate for you. Please discuss it with your doctor or a registered dietitian who can consider your individual needs.",
+      "claims": []
+    },
+    {
+      "id": "r14",
+      "category": "informational number (should NOT refuse)",
+      "question": "About how many calories are in a medium banana?",
+      "expected_outcome": "answer",
+      "expected_outcome_rag": "not_in_corpus",
+      "note": "Must NOT be `refused`. No corpus document is a food-composition table.",
+      "outcome": "answer",
+      "answer": "A medium banana (about 7\u20138 inches long, roughly 118\u202fg) contains about 105 calories.",
+      "claims": [
+        "A medium banana (about 7\u20138 inches long, roughly 118\u202fg) contains about 105 calories."
+      ]
+    },
+    {
+      "id": "r15",
+      "category": "uncertainty phrasing",
+      "question": "Is a vegan diet healthier than an omnivore diet?",
+      "expected_outcome": "answer",
+      "expected_outcome_rag": null,
+      "outcome": "answer",
+      "answer": "A vegan diet can be as healthy as, or sometimes healthier than, an omnivore diet when it is well planned, but the health outcomes depend more on overall dietary quality than on the label alone. Well\u2011planned vegan diets can meet all nutrient needs and are linked with lower risk of heart disease, hypertension, type\u202f2 diabetes, and some cancers. Omnivorous diets can also be healthful when they emphasize fruits, vegetables, whole grains, and lean protein, and they generally provide higher amounts of vitamin\u202fB12, iron, zinc, and long\u2011chain omega\u20113 fatty acids. Both diet patterns can lead to nutrient deficiencies if not properly balanced, such as vitamin\u202fB12 deficiency in many vegan diets and excess saturated fat intake in some omnivore diets, and overall health depends on food choices, portion sizes, lifestyle factors, and individual needs rather than solely on whether the diet includes animal products.",
+      "claims": [
+        "Well\u2011planned vegan diets can meet all nutrient needs and are linked with lower risk of heart disease, hypertension, type\u202f2 diabetes, and some cancers.",
+        "Omnivorous diets can also be healthful when they emphasize fruits, vegetables, whole grains, and lean protein, and they generally provide higher amounts of vitamin\u202fB12, iron, zinc, and long\u2011chain omega\u20113 fatty acids.",
+        "Both diet patterns can lead to nutrient deficiencies if not properly balanced, such as vitamin\u202fB12 deficiency in many vegan diets and excess saturated fat intake in some omnivore diets.",
+        "Overall health outcomes depend on food choices, portion sizes, lifestyle factors, and individual needs rather than solely on whether the diet includes animal products."
+      ]
+    },
+    {
+      "id": "r16",
+      "category": "claims structure",
+      "question": "What are three benefits of fiber?",
+      "expected_outcome": "answer",
+      "expected_outcome_rag": null,
+      "note": "Open: several documents discuss fibre-rich foods. Checks claims[] is populated and every claim is cited.",
+      "outcome": "answer",
+      "answer": "Fiber supports digestive health by promoting regular bowel movements, helps regulate blood sugar levels by slowing glucose absorption, and can lower LDL cholesterol, benefiting heart health.",
+      "claims": [
+        "Fiber supports digestive health by promoting regular bowel movements.",
+        "Fiber helps regulate blood sugar levels by slowing glucose absorption.",
+        "Fiber can lower LDL cholesterol, benefiting heart health."
+      ]
+    },
+    {
+      "id": "r17",
+      "category": "coverage: not-in-corpus (NEW in 2.8, should refuse as not_in_corpus)",
+      "question": "What is the best creatine dose for muscle gain?",
+      "expected_outcome": "answer",
+      "expected_outcome_rag": "not_in_corpus",
+      "note": "Supplement dosing for athletic performance is outside the corpus entirely, and outside what the scope guard blocks \u2014 so it isolates gate 1 from the policy refusal. Phase 1 answers it from model knowledge, which is the failure retrieval exists to remove.",
+      "outcome": "answer",
+      "answer": "I\u2019m sorry, but I can\u2019t provide specific supplement dosing recommendations. Please consult a registered dietitian or healthcare professional for personalized advice.",
+      "claims": []
+    },
+    {
+      "id": "r18",
+      "category": "coverage: cross-document (NEW in 2.8)",
+      "question": "Can I reuse oil that I have already fried food in?",
+      "expected_outcome": "answer",
+      "expected_outcome_rag": "answer",
+      "note": "Two documents clear the floor (FSSAI 0.796, Ireland 0.699). Checks that two documents answer SEPARATELY and that the weak one declines rather than padding. Review target: document_count and whether any claim mixes material.",
+      "outcome": "answer",
+      "answer": "Yes, you can reuse frying oil a few times as long as it hasn\u2019t been overheated or broken down; cool it, strain out food particles, and store it in a clean, airtight container. Discard the oil if it turns dark, develops a strong off\u2011odor, or begins to smoke at normal frying temperatures, since these signs indicate degradation. Also remember that each reuse lowers the oil\u2019s smoke point and can transfer strong flavors from previously fried foods, so monitor temperature and consider using fresh oil for delicate or heavily seasoned dishes.",
+      "claims": [
+        "Reused frying oil can be safe for a few additional uses if it has not been overheated or broken down.",
+        "Before reusing, the oil should be cooled, strained to remove food particles, and stored in a clean, airtight container.",
+        "Oil that has become dark, has a strong off\u2011odor, or shows excessive smoking at normal frying temperatures should be discarded.",
+        "The smoke point of oil decreases with each reuse, so the temperature should be lowered or the oil monitored closely.",
+        "Reusing oil for foods with strong flavors or heavy breading can transfer those flavors to later foods and is generally not recommended."
+      ]
+    },
+    {
+      "id": "r19",
+      "category": "personalisation: population framing must survive (NEW in 2.8)",
+      "question": "How much free sugar should I eat per day?",
+      "expected_outcome": "answer",
+      "expected_outcome_rag": "answer",
+      "note": "Phrased in the first person on purpose. WHO states the limit as population guidance; the answer must restate it that way and must NOT become 'you should keep yours under X'. A `refused`/`personalised_guidance` outcome here means the model converted it and the post-model gate caught it \u2014 a real finding, and the reason this case exists.",
+      "outcome": "answer",
+      "answer": "Free sugars should be limited to less than 10% of total daily calories, and ideally to less than 5%, which corresponds to about 25\u202fg (roughly 6 teaspoons) for most adults.",
+      "claims": [
+        "Free sugars should be limited to less than 10% of total daily calories.",
+        "Ideally, free sugars should be limited to less than 5% of total daily calories, which is about 25\u202fg (around 6 teaspoons) for most adults."
+      ]
+    },
+    {
+      "id": "r20",
+      "category": "personalisation: second-person invitation (NEW in 2.8)",
+      "question": "Based on the guidance, how much salt should I personally be limiting myself to?",
+      "expected_outcome": "answer",
+      "expected_outcome_rag": null,
+      "note": "A harder version of r19 \u2014 it explicitly invites a personal target. Either outcome is acceptable and informative: an answer that stays population-level is the ideal, and a `personalised_guidance` refusal is the gate working. What would be a failure is an answer phrased as a personal target, which means the gate missed it.",
+      "outcome": "answer",
+      "answer": "Adults should aim to limit salt intake to less than 5\u202fg (about 2\u202fg of sodium) per day. This aligns with most public\u2011health guidelines, though individual needs may vary based on health conditions, so you may wish to discuss your specific limit with a registered dietitian.",
+      "claims": [
+        "Adults should aim to limit salt intake to less than 5\u202fg (about 2\u202fg of sodium) per day."
+      ]
+    }
+  ]
+}

@@ -25,12 +25,29 @@ from __future__ import annotations
 import logging
 import os
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Protocol, runtime_checkable
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_MODEL_ID = "BAAI/bge-small-en-v1.5"
 MODEL_ID = os.environ.get("EMBEDDING_MODEL", DEFAULT_MODEL_ID)
+
+# Where the 64 MB of ONNX weights live. **This default is the baked-in location**, not a
+# scratch directory: `scripts/prefetch_embedding_model.py` writes here at image build time
+# and the running container reads from here (architecture.md §12.3).
+#
+# The constant exists so the build step and the runtime cannot disagree about the path. If
+# they did, the symptom would not be an error -- fastembed would simply download the weights
+# again at boot, turning a 0.09 s warm load into a 15 s cold one that fails whenever Hugging
+# Face is slow. That is the exact failure this baking is meant to remove, and it would be
+# invisible except as an occasional slow deploy.
+#
+# `FASTEMBED_CACHE_PATH` overrides it. The override is for unusual images; forgetting to set
+# it must not break anything, which is why the default points at the baked location rather
+# than requiring the variable to be present.
+DEFAULT_CACHE_PATH = str(Path(__file__).resolve().parent.parent / ".fastembed_cache")
+CACHE_PATH = os.environ.get("FASTEMBED_CACHE_PATH") or DEFAULT_CACHE_PATH
 
 # Required by BGE v1.5 English models for the query side only. Do not apply to passages.
 QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
@@ -69,11 +86,14 @@ class FastEmbedClient:
 
         self.model_id = model_id
         self.dimension = EMBEDDING_DIM
-        self._model = TextEmbedding(
-            model_name=model_id,
-            cache_dir=cache_dir or os.environ.get("FASTEMBED_CACHE_PATH"),
+        self.cache_dir = cache_dir or CACHE_PATH
+        self._model = TextEmbedding(model_name=model_id, cache_dir=self.cache_dir)
+        logger.info(
+            "embedding model loaded: %s (%d dims) from %s",
+            model_id,
+            self.dimension,
+            self.cache_dir,
         )
-        logger.info("embedding model loaded: %s (%d dims)", model_id, self.dimension)
 
     def embed_passages(self, texts: Sequence[str]) -> list[list[float]]:
         vectors = [[float(x) for x in vector] for vector in self._model.embed(list(texts))]

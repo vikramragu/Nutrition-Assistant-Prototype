@@ -20,22 +20,28 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 BACKEND_ROOT = REPO_ROOT / "backend"
 sys.path.insert(0, str(BACKEND_ROOT))
 
-from groq import RateLimitError  # noqa: E402
+from groq import APIConnectionError, APITimeoutError, InternalServerError, RateLimitError  # noqa: E402
 from services.model_client import GroqModelClient, ModelResponseError  # noqa: E402
 from services.scope_guard import check_request, check_response  # noqa: E402
 
-MAX_RATE_LIMIT_RETRIES = 5
+MAX_RETRIES = 6
+
+# `InternalServerError` covers Groq's 503 "model is currently over capacity", whose own
+# message says to back off exponentially. It was not retried until 2026-10-05, when a run
+# died eleven questions in and took the credits already spent with it. A transport hiccup
+# is not a finding; it must not be able to end a regression run.
+RETRYABLE = (RateLimitError, InternalServerError, APIConnectionError, APITimeoutError)
 
 
 def _call_with_retry(client: GroqModelClient, system_prompt: str, question: str):
-    for attempt in range(MAX_RATE_LIMIT_RETRIES):
+    for attempt in range(MAX_RETRIES):
         try:
             return client.get_structured_answer(system_prompt, [], question)
-        except RateLimitError as exc:
-            if attempt == MAX_RATE_LIMIT_RETRIES - 1:
+        except RETRYABLE as exc:
+            if attempt == MAX_RETRIES - 1:
                 raise
-            wait_seconds = 2 ** attempt
-            print(f"  rate limited, retrying in {wait_seconds}s ({exc})")
+            wait_seconds = 2 ** (attempt + 1)
+            print(f"  {type(exc).__name__}, retrying in {wait_seconds}s")
             time.sleep(wait_seconds)
     raise AssertionError("unreachable")
 
@@ -73,8 +79,20 @@ def load_previous_run() -> dict | None:
     return json.loads(existing[-1].read_text())
 
 
+def load_questions() -> list[dict]:
+    """The set gained an `_about` block in Phase 2.8, so it is now an object.
+
+    This is the only change 2.8 made to this harness. What it *measures* is untouched --
+    `check_response`, the Phase 1 three categories, the uncited `get_structured_answer`
+    path -- because this run is the baseline the RAG run's outcome flips are read against,
+    and a baseline that moved with the thing it measures would be worthless.
+    """
+    loaded = json.loads(QUESTIONS_PATH.read_text())
+    return loaded["questions"] if isinstance(loaded, dict) else loaded
+
+
 def main() -> None:
-    questions = json.loads(QUESTIONS_PATH.read_text())
+    questions = load_questions()
     system_prompt = SYSTEM_PROMPT_PATH.read_text()
     previous_run = load_previous_run()
     previous_by_id = {r["id"]: r for r in previous_run["results"]} if previous_run else {}

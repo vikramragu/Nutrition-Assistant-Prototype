@@ -4,8 +4,10 @@
 reasons* — the part that lives in conversation rather than in code. Everything else is on disk and
 can be read directly.
 
-**Status as of 2026-10-05:** Phases 2.0 – 2.4 complete and verified. **Phase 2.5 (answer layer and
-citation validation) is next.**
+**Status as of 2026-10-06:** Phases 2.0 – 2.8 complete; **2.9 code-complete but not deployed** —
+four of its six exit criteria need Railway/Vercel access and are a runbook, not done. 189 backend
+tests pass, frontend builds clean. **Next: run the 2.9 runbook, then 2.10 (failure log + README),
+which needs the deployed URL.**
 
 > This is a working memo, not a specification. Where it disagrees with
 > [`architecture.md`](../architecture.md) or [`implementation-plan.md`](../implementation-plan.md),
@@ -395,15 +397,36 @@ docs/features/rag-sourced-claims/
   implementation-plan.md    phases 2.0 – 2.10 with exit criteria
   ingestion-report.md       evidence: §1–6 = 2.1, §7 = 2.2, §9 = 2.3 (§9.5–9.6 = the block-order fix)
   retrieval-calibration.md  evidence: 2.4 — recall@k, the floor sweep, the quarantine, why 0.69
+  answer-layer.md           evidence: 2.5 + 2.6 — the isolation guarantee, the endpoint, the guards
+  prompt-inversion-regression.md  evidence: 2.8 — the v1->v2 rewrite, 12 explained flips
+  frontend.md               evidence: 2.7 — per-document blocks, four states, what wasn't eyeballed
+  deployment.md             evidence + RUNBOOK: 2.9 — §4 is what you must run by hand
   temp/context-handoff.md   this file
 
 backend/corpus/
   corpus.yaml  fetch.py  parse.py  chunk.py  ingest.py  snapshot.py
   ids.py  seed.py  show.py          corpus_snapshot.jsonl.gz  ← the artifact of record
-backend/services/embeddings.py   retriever.py
-backend/routers/corpus.py
-backend/alembic/versions/b1c7e4a92f08_rag_corpus_tables.py
-eval/retrieval_set.json   run_retrieval_eval.py
+backend/services/
+  embeddings.py  retriever.py                      2.2 / 2.4
+  answer_synthesiser.py  citation_validator.py     2.5 — per-document loop, the §8.3 rules
+  corpus_catalog.py                                2.5 — "what was searched"
+backend/prompts/document_answer_prompt.md          2.5 — rendered once per document
+backend/scripts/smoke_test_answer_layer.py         2.5 — live run, costs credits
+backend/routers/chat.py  corpus.py                  2.6 — three wire types, document_filter
+backend/alembic/versions/
+  b1c7e4a92f08_rag_corpus_tables.py                2.3
+  c3d9a51e7b42_message_ordinal.py                  2.6 — explicit turn order
+eval/retrieval_set.json   run_retrieval_eval.py        2.4
+eval/run_regression.py     runs/                        Phase 1 path — the baseline, do not rewire
+eval/run_rag_regression.py rag_runs/                    2.8 — the retrieval path
+
+frontend/lib/api.ts                                2.7 — the wire contract, 3 response types
+frontend/app/components/
+  ChatWindow.tsx        owns the citation selection; renders BOTH columns as a fragment
+  MessageList.tsx       one block per document, numbered markers
+  SourcesPanel.tsx      selected passages, or the corpus when idle
+  NotInCorpusNotice.tsx the coverage refusal (new)
+  history.ts            reload grouping, extracted so it can be run without a test runner
 ```
 
 ```bash
@@ -413,26 +436,216 @@ python -m corpus.show                    # inspect chunks
 python -m corpus.ingest --use-cache --snapshot corpus/corpus_snapshot.jsonl.gz
 python -m corpus.seed                    # idempotent
 python -m alembic current                # expect b1c7e4a92f08 (head)
-pytest -q                                # 68 passing
+pytest -q                                # 189 passing
 
 cd .. && backend/.venv/bin/python eval/run_retrieval_eval.py   # recall@k + floor sweep
 ```
 
-## 11. Next: Phase 2.5 — the answer layer
+## 11. Phase 2.5, as built
 
-Retrieval is calibrated, so any wrong answer from here is attributable to generation rather than to
-retrieval. That was the whole point of doing 2.4 first.
+Full record: [answer-layer.md §1–§8](../answer-layer.md). Services only — 2.5's deliverable list is
+four service files, and `routers/chat.py` was 2.6's, so `/chat` kept returning the Phase 1 contract
+until 2.6 switched it over.
 
-- **One model call per document**, never one call with all chunks — this is what makes blending two
-  publishers' guidance *unrepresentable* rather than merely discouraged (architecture §7.2).
-- `DocumentAnswer.answers_question` is a schema-forced field, so "this document has nothing to say"
-  is a first-class output rather than something inferred from a score. It is **gate 2**, and
-  deliberately the stronger of the two gates.
-- **Citation validation is mechanical.** Every `CitedClaim.source.chunk_id` must resolve to a chunk
-  that was actually retrieved for that turn; an unresolvable citation is a failed response, not a
-  warning.
-- The response contract changes — `claims[].source` becomes required and non-nullable. Architecture
-  §8.1 explains why per-document answering, not citation, is what forces it.
+New: `prompts/document_answer_prompt.md`, `model_client.answer_from_document()`,
+`services/answer_synthesiser.py`, `services/citation_validator.py`, `services/corpus_catalog.py`,
+and the §8.2 contract in `db/schemas.py`. Phase 1's `ChatAnswerResponse` was renamed
+`ChatAnswerResponseV1`, which is still what the eval harnesses describe their results in.
 
-**Outstanding from 2.4:** the eval labels are one person's judgement and should be reviewed. Every
-number in [retrieval-calibration.md](../retrieval-calibration.md) rests on them.
+**The guarantee lives in the prompts, not the responses.** A single call holding three publishers'
+chunks would return a fluent, well-formed, fully cited answer and look fine — so the test fake
+records every prompt and asserts that exactly one document's chunk ids appear in each. Re-checked
+against the real corpus too. Nothing in this module may ever put two documents in one prompt.
+
+**Measured, free (no generation call):** fan-out is 2–3 documents per question; the largest rendered
+prompt is ~2,810 tokens against a 16,000 budget; the out-of-corpus question gets zero hits and makes
+no model call at all.
+
+**The 0.02 band is already visible.** Both cooking-oil questions put the Irish food pyramid barely
+over the floor (0.699 / 0.711) on a document with nothing to say about reusing oil. Gate 2 should
+decline it. Exactly what 2.4 predicted would start mattering.
+
+**A third defect of the same shape — found by reading a rendered prompt, not by running tests.**
+The prompt file's maintainer comment *named* the `{{DOCUMENT}}` and `{{PASSAGES}}` placeholders, and
+`str.replace` is global, so the passages were substituted into the comment as well as their intended
+position. Every prompt said everything twice, 58% over size. Nothing failed; no placeholder was left
+over, so the test checking for leftovers passed. Fixed twice over: HTML comments are now stripped
+before sending, and `_assert_single_placeholder` raises at import on any count but exactly one.
+**Phases 2.1, 2.4 and 2.5 have each produced one defect that was invisible in the code and visible
+in the data.**
+
+**Deliberately not done, and why:** no live Groq call. Everything is structural (recording fake) or
+measured on retrieval. `scripts/smoke_test_answer_layer.py` does the live run in one command when the
+credits are worth spending; 2.10 measures it properly. Unverified until then: whether the model
+copies a 36-char UUID back correctly, whether it uses `answers_question` honestly, and over-refusal
+on borderline hits.
+
+## 12. Phase 2.6, as built
+
+Full record: [answer-layer.md §9–§12](../answer-layer.md). `POST /chat` now runs the whole
+architecture §10 sequence and returns three distinct wire types. The three `[~]` criteria 2.5 left
+are closed. 168 tests pass.
+
+**A turn is now 1 user message + one assistant message per document, in a single commit.** Chosen
+over concatenating the prose (loses the grouping — §7.2 blending at the persistence layer) and over
+a `document_answers` JSONB column (puts publisher/year/url back in a blob, the drift §6.1 ruled
+out). Which document a message answers from is **derived** from its claims, not stored — and it is
+always derivable because citation-validator rule 2 forbids an answer with no claims. Rule 2 buys
+the read model as well as the grounding guarantee.
+
+**A fourth defect of the same family, caught before shipping.** `Message.created_at` is
+`server_default=func.now()`, and Postgres `now()` is the *transaction* timestamp — so a
+single-commit turn gives **every** row the same `created_at`, the user's message included. The
+relationship ordered by it. On reload a multi-document turn would have come back in arbitrary
+order, including which message was the question. Nothing would have failed; it would have surfaced
+months later as "history sometimes renders out of order". Fixed by migration `c3d9a51e7b42`:
+`messages.ordinal` + `UNIQUE (conversation_id, ordinal)`, same pattern as `chunks`. The test
+asserts the *premise* (all timestamps equal) as well as the behaviour, so it cannot start passing
+for a new reason.
+
+**The backfill was made non-vacuous.** The local `messages` table is empty, so six Phase-1-shaped
+rows were inserted across two conversations out of chronological order, the migration rolled back
+and re-applied, and the ordinals read back: correct, `created_at`-ordered, partitioned per
+conversation. (Contrast 2.3's legacy-row criterion, still only vacuously verified.)
+
+**Personalisation: the discriminator is second person, not the quantity.** The obvious rule
+— prescriptive cue + a number — would refuse the corpus's own phrasing, since population guidance
+is itself written prescriptively ("adults should consume no more than 10%"). Intake units only;
+times and temperatures excluded, or most of FSANZ becomes a refusal. `check_response()`
+deliberately did **not** gain the rule: it is now used only by the eval harnesses, which are the
+baseline 2.8 reads its flips against.
+
+**Verified end to end with real retrieval, no Groq spend:** free-sugars → 3 documents, oil → 2,
+creatine → `not_in_corpus` with 0 model calls, calorie question → `refused` with 0 model calls.
+Reload gave contiguous ordinals across two turns with every block's document and every claim's
+citation intact, and the WHO block correctly reported `page_from=0` (not paginated) rather than
+page one.
+
+## 13. Phase 2.8, as built — and the first live evidence
+
+Full record: [prompt-inversion-regression.md](../prompt-inversion-regression.md). Done out of order,
+before 2.7, because the prompt contradiction was the only known-broken thing in the system and
+because this run is the first time anything touched the real model.
+
+**The rewrite is the principle, not the opposite rule.** "Always name your source" would be wrong on
+the Phase 1 path, which has none. v2 says *cite what you were given, and attribute to nothing else*
+— true whether or not passages are supplied, which matters because one prompt serves both paths.
+Measured: 0 of 20 uncited-path responses name a source, exactly as under v1.
+
+**Two runs, not one**, so a flip has one candidate cause: Phase 1 path on the new prompt (isolates
+the prompt edit — **0 flips, 0 mismatches**), then the RAG path on the same prompt (isolates
+retrieval — **0 mismatches**, 12 path flips). `run_regression.py` was *not* rewired; it is the
+baseline. `eval/run_rag_regression.py` is a second harness.
+
+**All 12 flips are `answer → not_in_corpus`, and they split in a way that matters:** 10 at gate 1
+(topic genuinely absent; all below the floor, r14 lowest at 0.594) and **2 at gate 2** — r5 "ground
+beef internal temperature" cleared the floor at **0.743** on FSANZ's temperature language and the
+model then said it does not answer that. Three more documents declined inside answered questions.
+**Gate 2 is real**, which is what [retrieval-calibration.md](../retrieval-calibration.md) said it
+would have to be once the band narrowed to 0.02.
+
+**The three unknowns from answer-layer §8 are now answered.** UUID transcription: 14/14 claims
+resolved, 0 validation failures — the `chunk_key` fallback is not needed. `answers_question`: used
+honestly, more than expected. Over-refusal: none observed.
+
+**r1 produced the disagreement case unprompted.** WHO says protein 10–15% of energy (≈50–75 g/day);
+the DGA says 1.2–1.6 g/kg body weight. Both verbatim-faithful to their cited chunks, presented
+separately, no winner picked. First real-model evidence for a criterion the tests could only prove
+structurally possible.
+
+**Three defects found by running it.** (1) An unretried Groq 503 killed the first run 11 questions
+in — both harnesses now retry 503/timeout/connection errors. (2) `over_refusal`: the DGA's own *"If
+you have a chronic disease, talk with your health care professional…"* tripped the `medical_advice`
+guard — a referral read as advice. 1 of 159 second-person corpus sentences; fixed with lookbehinds
+for if/whether/when/should. (3) Fixing that exposed a pre-existing `missed_scope_restriction`:
+*"Based on that, you have diabetes"* was **not** blocked, because `[a-z\s]+` made the filler before
+the condition mandatory. `+` → `*`. Both runs were replayed through the amended guard — **0 outcomes
+changed**, so neither needed re-paying for.
+
+## 14. Phase 2.7, as built
+
+Full record: [frontend.md](../frontend.md). Zero new npm dependencies; `package.json` and
+`package-lock.json` untouched. Seven files changed, three added — more than the plan's "four and
+one", and §1 of that doc says why.
+
+**The panel had to move.** It shows the passages behind the *selected* answer, which is state shared
+with the message list and has to sit next to `messages` — but `page.tsx` rendered it as a sibling of
+`ChatWindow`. `ChatWindow` now returns a fragment holding the chat column *and* the panel, so the
+flex layout still gets two children, `page.module.css` is untouched and `page.tsx` stays a server
+component. The cost: a component named `ChatWindow` renders an `<aside>`. Commented at both ends.
+
+**Citation markers sit on the claims, not mid-sentence.** The backend gives `claims[]` as standalone
+statements, not offsets into the prose, so a superscript inside a sentence would be a guess about
+which clause it belongs to. Numbering runs across the whole turn, so `[3]` means the same passage in
+the message and in the panel.
+
+**The four states differ by border style and badge text as well as hue** — the two centred notices
+(policy vs coverage refusal) must stay distinguishable in monochrome and with a red-green deficiency,
+and they mean opposite things.
+
+**`year: null` renders "year not stated"; `page_from: 0` renders no page at all.** Both are
+truthfulness details, not formatting: a blank year is something a reader fills in themselves, and the
+WHO HTML source has no pages.
+
+**What was verified, and what wasn't.** No browser automation in that session, so: the live JSON was
+checked field-by-field against `lib/api.ts` (a mismatched key renders `undefined` and looks like a
+styling bug, so this was done mechanically); the reload grouping was extracted to `history.ts` and run
+against the real `GET /conversations/{id}` payload, confirming 3 rows fold into one two-document turn
+with every citation intact and a Phase 1 uncited row dropped rather than rendered. **Nothing was
+looked at** — layout, dark mode, hit targets and the panel's scrolling are reasoned from CSS only.
+frontend.md §4.2 has the commands to look.
+
+## 15. Phase 2.9, as built — code done, NOT deployed
+
+Full record and runbook: [deployment.md](../deployment.md). **§4 is the part that needs your
+credentials**; the working agreement that no production credential enters a transcript is why the
+phase splits here, same as the 2.0 pgvector check.
+
+New: `scripts/prefetch_embedding_model.py` (bakes the 64 MiB of ONNX at build time),
+`backend/nixpacks.toml` (runs it in Railway's build phase), a FastAPI lifespan that loads the model
+at startup, `RETRIEVAL_K`/`RETRIEVAL_FLOOR` env vars defaulting to the measured values, and
+`tests/test_startup.py` (9 tests). The requirements split already existed — what was missing was any
+check that it holds.
+
+**`services.embeddings.CACHE_PATH` is one constant for both the build step and the runtime**, and the
+default *is* the baked location rather than something `FASTEMBED_CACHE_PATH` must be set to. If the
+two could disagree, nothing would error — fastembed would re-download 64 MiB at boot and the baking
+would be silently pointless.
+
+**Measured locally:** 1.37 s from launch to a served `/health`; model load 0.32 s; **351 MB RSS for
+the whole process** idle after one request. The plan's 279 MB was the *model alone* — 351 MB is the
+number to size a tier against, and on 512 MB that is 70% of the ceiling before any concurrency.
+
+**The split was tested, not assumed:** a clean venv with only `requirements.txt` (56 packages, no
+pymupdf/pdfminer/trafilatura) imports the app, runs the lifespan and serves `/health`. `corpus.seed`
+also imports there, which is what makes "run the seed inside the deployed container" real. PyYAML
+turns out to arrive at runtime anyway via fastembed -> huggingface_hub.
+
+**The riskiest part of this deploy is silent.** Nixpacks has never been run against `nixpacks.toml`,
+and a skipped build phase **does not fail the deploy** — it moves the download back to boot, where it
+costs nothing until Hugging Face is slow. Read the build log for the prefetch output.
+
+**A 2.8 defect found and fixed here:** `eval/runs/` was gitignored, so the Phase 1 regression runs —
+one of the two files prompt-inversion-regression.md cites as evidence — could never be committed.
+`eval/rag_runs/` and `eval/failure_log_runs/` were already tracked. Now consistent.
+
+**Two reporting bugs in my own tooling, both caught by cross-checking:** the prefetch script first
+reported 200.8 MB because the HuggingFace cache hardlinks each blob into `snapshots/` and I summed
+`st_size` (actual: 64 MiB, cross-checked with `du`); and in 2.8 an attribution detector matched the
+pronoun "who" as the organization. Neither failed; both printed a plausible wrong number.
+
+## 16. Next: run the 2.9 runbook, then 2.10
+
+- **2.10** inherits a real finding to chase: the corpus answers only 5 of the 20 regression
+  questions, so answer quality rests on 5 questions and 14 claims. Its ten fixed questions are
+  weighted toward what the corpus covers, and it reruns the numeric ones for `inconsistent_number`,
+  which a single pass cannot detect.
+
+**Known, deferred, written down:** `RETRIEVAL_K`/`RETRIEVAL_FLOOR` are still constants, not env vars
+(2.9); a coverage refusal cannot be traced to its conversation, because `retrievals` reaches one only
+through `message_id`, which is null for those rows; nothing has run against the deployed system.
+
+**Not outstanding any more:** the 2.4 eval labels *were* reviewed (§8, commit `13a85e1` — four of
+44 were wrong, recall@8 unchanged). This file carried a "should be reviewed" note past that commit
+for two phases. The live caveat is narrower and unchanged: the labels are still one person's
+judgement, and that person wrote the retriever.

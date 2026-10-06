@@ -20,6 +20,7 @@ where that distinction is enforced by having two methods rather than one flag.
 from __future__ import annotations
 
 import logging
+import os
 import uuid
 from dataclasses import dataclass
 
@@ -57,6 +58,32 @@ logger = logging.getLogger(__name__)
 # comment false. The floor *is* the not-in-corpus refusal; it is not a tuning knob.
 DEFAULT_FLOOR = 0.69
 DEFAULT_K = 8
+
+# What the application actually uses. Phase 2.9 makes both tunable on Railway without a
+# code deploy (architecture.md §12.1), with the measured values above as the defaults.
+#
+# An override is logged at WARNING, loudly and at import, because **the floor is the
+# not-in-corpus refusal**, not a performance knob. Changing it changes which questions the
+# assistant claims not to cover, and it silently invalidates every number in
+# retrieval-calibration.md -- a document that would then still read as current. If you
+# override it, re-run `eval/run_retrieval_eval.py` and update that file.
+RETRIEVAL_K = int(os.environ.get("RETRIEVAL_K", DEFAULT_K))
+RETRIEVAL_FLOOR = float(os.environ.get("RETRIEVAL_FLOOR", DEFAULT_FLOOR))
+
+if RETRIEVAL_FLOOR != DEFAULT_FLOOR:
+    logger.warning(
+        "RETRIEVAL_FLOOR overridden: %.3f (measured value is %.3f). The floor IS the "
+        "not-in-corpus refusal -- retrieval-calibration.md no longer describes this "
+        "deployment until run_retrieval_eval.py is re-run.",
+        RETRIEVAL_FLOOR,
+        DEFAULT_FLOOR,
+    )
+if RETRIEVAL_K != DEFAULT_K:
+    logger.warning(
+        "RETRIEVAL_K overridden: %d (measured value is %d, where recall@k went flat).",
+        RETRIEVAL_K,
+        DEFAULT_K,
+    )
 
 
 @dataclass(frozen=True)
@@ -131,6 +158,30 @@ def search(
     ]
 
 
+def apply_floor(
+    hits: list[ScoredChunk], floor: float = DEFAULT_FLOOR, *, query: str = ""
+) -> list[ScoredChunk]:
+    """The chunks at or above `floor`. Separated from `search()` so a caller can keep both.
+
+    `POST /chat` needs the discarded hits as well as the kept ones: `retrieval_hits` is
+    "what retrieval returned, and which of it reached a generation call" (architecture.md
+    §6), so a coverage refusal should record the eight chunks that *were* considered and
+    the score of the best one. Without that, a refusal leaves no evidence of how close it
+    came, which is the only thing that distinguishes a correct refusal from `over_refusal`
+    when the Phase 2.10 failure log is read.
+    """
+    kept = [hit for hit in hits if hit.score >= floor]
+
+    if hits and not kept:
+        logger.info(
+            "below floor: best=%.3f floor=%.2f query=%r",
+            hits[0].score,
+            floor,
+            query[:80],
+        )
+    return kept
+
+
 def retrieve(
     session: Session,
     query: str,
@@ -146,13 +197,4 @@ def retrieve(
     refusal (architecture.md §7.3), and it means no generation call is made at all.
     """
     hits = search(session, query, k=k, document_id=document_id, client=client)
-    kept = [hit for hit in hits if hit.score >= floor]
-
-    if hits and not kept:
-        logger.info(
-            "below floor: best=%.3f floor=%.2f query=%r",
-            hits[0].score,
-            floor,
-            query[:80],
-        )
-    return kept
+    return apply_floor(hits, floor, query=query)

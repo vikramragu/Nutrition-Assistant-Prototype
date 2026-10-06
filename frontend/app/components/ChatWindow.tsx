@@ -1,16 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import {
-  createConversation,
-  getConversation,
-  sendChatMessage,
-  type ConversationRead,
-} from "@/lib/api";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createConversation, getConversation, sendChatMessage } from "@/lib/api";
+import { latestAnsweredMessageId, toDisplayMessages } from "./history";
 import MessageInput from "./MessageInput";
 import MessageList from "./MessageList";
+import SourcesPanel from "./SourcesPanel";
 import styles from "./ChatWindow.module.css";
-import type { DisplayMessage } from "./types";
+import { citationsOf, type CitationSelection, type DisplayMessage } from "./types";
 
 const STORAGE_KEY = "nutrition-assistant-conversation-id";
 
@@ -36,25 +33,16 @@ function newLocalId(): string {
   return `local-${localIdCounter}-${Date.now()}`;
 }
 
-function toDisplayMessages(conversation: ConversationRead): DisplayMessage[] {
-  return conversation.messages.map((message) =>
-    message.role === "assistant"
-      ? {
-          kind: "assistant",
-          id: message.id,
-          content: message.content,
-          claims: message.claims.map((claim) => ({ claim: claim.claim_text, source: null })),
-        }
-      : { kind: "user", id: message.id, content: message.content }
-  );
-}
-
 export default function ChatWindow() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [isInitializing, setIsInitializing] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
+  // Which passage the panel is showing. Lives here because `messages` does: the panel and
+  // the message list are reading the same turn from two angles, and splitting the two
+  // pieces of state would mean keeping them in step by hand.
+  const [selection, setSelection] = useState<CitationSelection | null>(null);
   const hasInitialized = useRef(false);
 
   useEffect(() => {
@@ -72,7 +60,10 @@ export default function ChatWindow() {
           const conversation = await getConversation(storedId);
           if (!cancelled) {
             setConversationId(conversation.id);
-            setMessages(toDisplayMessages(conversation));
+            const display = toDisplayMessages(conversation);
+            setMessages(display);
+            const latest = latestAnsweredMessageId(display);
+            if (latest !== null) setSelection({ messageId: latest, index: 0 });
           }
           hydrated = true;
         } catch {
@@ -103,6 +94,12 @@ export default function ChatWindow() {
     };
   }, []);
 
+  const selectedCitations = useMemo(() => {
+    if (selection === null) return [];
+    const selected = messages.find((message) => message.id === selection.messageId);
+    return selected ? citationsOf(selected) : [];
+  }, [messages, selection]);
+
   async function handleSend(text: string) {
     if (!conversationId) return;
 
@@ -111,11 +108,29 @@ export default function ChatWindow() {
 
     try {
       const response = await sendChatMessage(conversationId, text);
+
       if (response.type === "answer") {
+        const id = newLocalId();
         setMessages((prev) => [
           ...prev,
-          { kind: "assistant", id: newLocalId(), content: response.answer, claims: response.claims },
+          { kind: "assistant", id, documentAnswers: response.document_answers },
         ]);
+        // Point the panel at the answer that just arrived.
+        setSelection({ messageId: id, index: 0 });
+      } else if (response.type === "not_in_corpus") {
+        setMessages((prev) => [
+          ...prev,
+          {
+            kind: "not_in_corpus",
+            id: newLocalId(),
+            message: response.message,
+            searched: response.searched,
+          },
+        ]);
+        // A coverage refusal has no passages. Clearing the selection sends the panel back
+        // to the corpus list, which is the most useful thing it can show at that moment:
+        // the user just asked for something outside it.
+        setSelection(null);
       } else {
         setMessages((prev) => [
           ...prev,
@@ -133,18 +148,54 @@ export default function ChatWindow() {
     }
   }
 
+  // The panel renders in every state, including while the conversation loads, so it can
+  // answer "what can this thing see?" before anything else works. It is a sibling of the
+  // chat column in the page's flex layout rather than a child of it, which is why this
+  // component returns a fragment: the shared selection state lives next to `messages`, and
+  // lifting both into a new wrapper would have been a larger change than the panel needs.
+  const panel = (
+    <SourcesPanel
+      citations={selectedCitations}
+      selectedIndex={selection?.index ?? null}
+      onSelect={(index) =>
+        setSelection(selection === null ? null : { messageId: selection.messageId, index })
+      }
+    />
+  );
+
   if (isInitializing) {
-    return <div className={styles.chatWindow}><p className={styles.status}>Loading conversation…</p></div>;
+    return (
+      <>
+        <div className={styles.chatWindow}>
+          <p className={styles.status}>Loading conversation…</p>
+        </div>
+        {panel}
+      </>
+    );
   }
 
   if (initError) {
-    return <div className={styles.chatWindow}><p className={styles.error}>{initError}</p></div>;
+    return (
+      <>
+        <div className={styles.chatWindow}>
+          <p className={styles.error}>{initError}</p>
+        </div>
+        {panel}
+      </>
+    );
   }
 
   return (
-    <div className={styles.chatWindow}>
-      <MessageList messages={messages} />
-      <MessageInput onSend={handleSend} disabled={isSending} />
-    </div>
+    <>
+      <div className={styles.chatWindow}>
+        <MessageList
+          messages={messages}
+          selection={selection}
+          onSelectCitation={setSelection}
+        />
+        <MessageInput onSend={handleSend} disabled={isSending} />
+      </div>
+      {panel}
+    </>
   );
 }

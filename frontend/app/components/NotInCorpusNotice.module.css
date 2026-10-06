@@ -1,0 +1,62 @@
+/* Informational, not a warning. RefusalNotice uses the amber --warning-* pair for a policy
+   boundary; this uses the green --accent-tint, because a coverage gap is a fact about the
+   corpus rather than a line the user tried to cross. Four states have to be tellable apart
+   at a glance: answer (bordered panel, left-aligned), policy refusal (amber, centred),
+   coverage refusal (green-tinted, centred, dashed), error (red, centred). */
+.notice {
+  align-self: center;
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--accent-tint);
+  /* Dashed, so the two centred notices differ by shape and not only by hue -- the
+     distinction has to survive a monochrome screenshot and a red-green colour deficiency. */
+  border: 1px dashed var(--accent);
+  font-size: 0.9rem;
+}
+
+.badge {
+  display: inline-block;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 4px;
+  color: var(--accent);
+}
+
+.message {
+  margin: 0;
+}
+
+.searched {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.searched summary {
+  cursor: pointer;
+}
+
+.searched ul {
+  margin: 6px 0 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.searched a {
+  text-decoration: underline;
+  color: var(--foreground);
+}
+
+.searched a:hover {
+  color: var(--accent);
+}
+
+.provenance {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+}

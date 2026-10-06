@@ -12,9 +12,27 @@ backend/.env
 # OS
 .DS_Store
 
-# Eval run artifacts (generated, not source)
-eval/runs/
+# Eval run artifacts.
+#
+# `eval/runs/` used to be ignored as "generated, not source". That was wrong, and Phase 2.9
+# found it: the regression suite's whole method is "diff this run against the previous one"
+# (eval.md §2.3), which needs the previous run to exist in the repo. With it ignored,
+# docs/features/rag-sourced-claims/prompt-inversion-regression.md cited two run files as its
+# evidence and one of them could never be committed -- so the prompt-inversion comparison
+# was unreproducible by anyone cloning this, including a future me.
+#
+# `eval/rag_runs/` and `eval/failure_log_runs/` were already tracked, so this also removes
+# an inconsistency between three directories that hold the same kind of artifact.
 backend/corpus/.cache/
 backend/chunks.json
 backend/corpus/chunks.json
 backend/corpus/chunks.parquet
+
+# Baked embedding weights (64 MiB of ONNX, downloaded at image build time by
+# scripts/prefetch_embedding_model.py -- see architecture.md §12.3). Reproducible from the
+# model id, so it is a build artifact rather than source, and committing 64 MiB of binary
+# to a repo whose point is reviewable diffs would be its own kind of mistake.
+backend/.fastembed_cache/
+
+# Claude Code local settings (personal, not shared)
+.claude/settings.local.json

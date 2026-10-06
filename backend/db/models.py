@@ -22,8 +22,11 @@ class Conversation(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
+    # Ordered by `ordinal`, not `created_at`: a Phase 2 turn writes the user message and
+    # one assistant message per document in a single transaction, and Postgres gives every
+    # row in a transaction the same `now()`. See Message.ordinal.
     messages: Mapped[list["Message"]] = relationship(
-        back_populates="conversation", cascade="all, delete-orphan", order_by="Message.created_at"
+        back_populates="conversation", cascade="all, delete-orphan", order_by="Message.ordinal"
     )
     scope_refusals: Mapped[list["ScopeRefusal"]] = relationship(
         back_populates="conversation", cascade="all, delete-orphan"
@@ -38,11 +41,26 @@ class Message(Base):
         UUID(as_uuid=True), ForeignKey("conversations.id", ondelete="CASCADE")
     )
     role: Mapped[str] = mapped_column(String(16))  # 'user' | 'assistant'
-    content: Mapped[str] = mapped_column(Text)  # user text, or assistant `answer`
+    # User text, or **one document's** answer. A Phase 2 turn produces one assistant row
+    # per document that had something to say, so a turn is 1 + n rows rather than 1 + 1.
+    # Which document a row answers from is not stored here: it is derived from the row's
+    # claims via chunk_id, and citation_validator rule 2 guarantees every shipped answer
+    # has at least one claim, so it is always derivable. Storing it as well would create a
+    # second path to the same fact that could disagree with the citation -- the drift
+    # architecture.md §6.1 avoided by making the citation a foreign key.
+    content: Mapped[str] = mapped_column(Text)
+    # Position within the conversation. Explicit because `created_at` cannot order a
+    # single-transaction turn -- Postgres `now()` is constant within a transaction, so all
+    # of a turn's rows share it. Same pattern as `chunks.ordinal`.
+    ordinal: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     conversation: Mapped["Conversation"] = relationship(back_populates="messages")
     claims: Mapped[list["Claim"]] = relationship(back_populates="message", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        UniqueConstraint("conversation_id", "ordinal", name="uq_message_conversation_ordinal"),
+    )
 
 
 class Claim(Base):

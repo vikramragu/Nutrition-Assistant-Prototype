@@ -63,3 +63,24 @@ Nixpacks' Python version auto-detection hasn't been verified against Railway spe
 ## 6. Known risk: Vercel Framework Preset
 
 If the Vercel project's **Framework Preset** (Settings → Build and Deployment) is ever set to "Other" instead of "Next.js", the build succeeds (Next.js builds fine on its own) but the deployment serves a platform-level 404 on every route — Vercel falls back to serving static files from `public`/repo root instead of running the Next.js output. Each deployment pins its own build config at deploy time, so fixing the Project Setting alone doesn't retroactively fix an already-built deployment; a fresh deployment is required afterward.
+
+---
+
+## 7. Phase 2 adds a RAG layer — see the Phase 2.9 runbook
+
+This guide (Phase 6) still describes how Railway and Vercel are wired, and that wiring is
+unchanged. Phase 2 adds four things it does not cover:
+
+- 64 MiB of embedding weights **baked into the image at build time** (`nixpacks.toml`), and
+  the build-log line that proves it happened;
+- the embedding model loaded at **application startup**, so a cold start waits for it rather
+  than a user's first question;
+- four new, all-optional Railway variables — `EMBEDDING_MODEL`, `FASTEMBED_CACHE_PATH`,
+  `RETRIEVAL_K`, `RETRIEVAL_FLOOR`;
+- a manual, idempotent `python -m corpus.seed` after the migration — the corpus is a
+  committed snapshot, and production never fetches from a publisher.
+
+**Use [features/rag-sourced-claims/deployment.md](./features/rag-sourced-claims/deployment.md)
+for the Phase 2 deploy.** Its §4 is the runbook; §5 marks which exit criteria still need
+production access. The §4 smoke test above is superseded by that document's §4.4, which
+covers the three response types rather than one.

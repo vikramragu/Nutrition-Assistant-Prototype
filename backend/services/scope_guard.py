@@ -39,6 +39,11 @@ REFUSAL_MESSAGES: dict[ScopeCategory, str] = {
         "medication dosing. Please talk to a physician or other qualified healthcare provider "
         "about this."
     ),
+    "personalised_guidance": (
+        "I can only report what the guidance documents say for a population, not turn it into "
+        "a personal recommendation or target for you. A registered dietitian can work out what "
+        "these figures mean for your situation."
+    ),
 }
 
 
@@ -108,9 +113,63 @@ _WEIGHT_RESPONSE_PATTERNS = _compile_all(
 
 _MEDICAL_RESPONSE_PATTERNS = _compile_all(
     [
-        r"you (have|are diagnosed with) [a-z\s]+(condition|disease|disorder|diabetes|cancer)",
+        # The rule is about the assistant *asserting* a condition -- "you have diabetes".
+        # The lookbehinds exclude the hypothetical, which means the opposite thing: the
+        # corpus's own referral advice is phrased that way, and blocking it is over_refusal
+        # on the single safest sentence in the document.
+        #
+        # Found by measurement, Phase 2.8: of the 159 second-person sentences in the corpus,
+        # exactly one tripped this guard -- the Dietary Guidelines' "If you have a chronic
+        # disease, talk with your health care professional...". A faithful quotation of a
+        # referral was being classified as giving medical advice.
+        # `[a-z\s]*`, not `+`. With `+` the filler was mandatory, so "you have a thyroid
+        # condition" was caught but the blunter "you have diabetes" was **not** -- a
+        # missed_scope_restriction hole, and the more serious of the two defects this
+        # pattern had. Found while verifying the lookbehind fix above.
+        r"(?<!if )(?<!whether )(?<!when )(?<!should )"
+        r"you (have|are diagnosed with) [a-z\s]*(condition|disease|disorder|diabetes|cancer)",
         r"you should take \d+\s*(mg|mcg|ml|units?)",
         r"your diagnosis is",
+    ]
+)
+
+# --- Response-side: population guidance converted into a personal prescription ---
+#
+# New in Phase 2.6 (architecture.md §9.1). The brief adds a rule Phase 1 had no check for:
+# *population-level guidance stays population-level.* Retrieval is what makes this a live
+# risk rather than a theoretical one -- the corpus is full of sentences like "adults should
+# limit free sugars to less than 10% of total energy intake". Restating that is **correct**.
+# The violation is converting it: "so you should keep your sugar under 50 g."
+#
+# **The discriminator is second person, not the quantity.** A rule keyed on
+# "prescriptive cue + number" would block the corpus's own phrasing, because population
+# guidance is itself written prescriptively ("adults should consume no more than 10%").
+# So every pattern below requires an explicit second-person marker, which is the one thing
+# the document never says and a personalised restatement always does.
+_SECOND_PERSON_PRESCRIPTIVE = (
+    r"(you should|you need to|you must|you ought to|you'?re advised to|"
+    r"your (daily |weekly |own )?(target|goal|limit|allowance|budget|intake|requirement)|"
+    r"(for|in) your (case|situation|diet|body)|for you personally|"
+    r"(keep|limit|cut|reduce) your [a-z\s]{0,20}(to|under|below)|"
+    r"you can (safely )?(have|eat|consume)|i recommend (that )?you)"
+)
+
+# Deliberately **intake** units only. Times, temperatures and durations are excluded
+# because second-person food-safety instruction is normal and not what §9.1 prohibits:
+# "refrigerate leftovers within two hours" is the guidance, stated the way the guidance
+# states it. Including `hours` here would have turned most of the FSANZ document into a
+# refusal -- over_refusal, on the half of the corpus that exists to answer storage
+# questions.
+_INTAKE_QUANTITY = (
+    r"\d+(?:[.,]\d+)?\s*"
+    r"(%|per ?cent|g\b|grams?|mg\b|milligrams?|mcg\b|micrograms?|kcal|calories|"
+    r"portions?|servings?|teaspoons?|tsp\b|tablespoons?|tbsp\b|cups?)"
+)
+
+_PERSONALISATION_RESPONSE_PATTERNS = _compile_all(
+    [
+        rf"{_SECOND_PERSON_PRESCRIPTIVE}.{{0,80}}{_INTAKE_QUANTITY}",
+        rf"{_INTAKE_QUANTITY}.{{0,80}}{_SECOND_PERSON_PRESCRIPTIVE}",
     ]
 )
 
@@ -124,6 +183,15 @@ _RESPONSE_RULES: list[tuple[ScopeCategory, list[re.Pattern]]] = [
     ("calorie_target", _CALORIE_RESPONSE_PATTERNS),
     ("weight_target", _WEIGHT_RESPONSE_PATTERNS),
     ("medical_advice", _MEDICAL_RESPONSE_PATTERNS),
+]
+
+# Personalisation goes **last** on purpose. "You should eat 1800 calories a day" matches
+# both rule sets, and `calorie_target` is the more specific, more serious finding -- it is
+# also the category Phase 1's eval history is recorded against, so the label should not
+# change under it.
+_GROUNDED_RESPONSE_RULES: list[tuple[ScopeCategory, list[re.Pattern]]] = [
+    *_RESPONSE_RULES,
+    ("personalised_guidance", _PERSONALISATION_RESPONSE_PATTERNS),
 ]
 
 
@@ -145,10 +213,32 @@ def check_request(message: str) -> ScopeVerdict:
 
 
 def check_response(answer: NutritionAnswer) -> ScopeVerdict:
-    """Post-model check: did the model volunteer a prohibited category unprompted?
+    """Post-model check for the Phase 1 answer path: three categories, unchanged.
 
     A pre-check on the question cannot catch a model that volunteers, e.g., a
     calorie number unprompted in an otherwise in-scope answer -- this closes that gap.
+
+    **Deliberately does not include the personalisation rule set.** This function is now
+    used only by `eval/run_regression.py` and `eval/run_failure_log.py`, which are the
+    recorded baseline that Phase 2.8 reads its outcome-type flips against. Adding a fourth
+    category here would change what that baseline blocks, and the comparison 2.8 exists to
+    make would be against a moved target. The grounded path uses
+    `check_document_answer()` below.
     """
     reason = _first_match(answer.answer, _RESPONSE_RULES)
+    return ScopeVerdict(blocked=reason is not None, reason=reason)
+
+
+def check_document_answer(answer: str) -> ScopeVerdict:
+    """Post-model check for one per-document answer: the three categories **plus**
+    personalisation (architecture.md §9.1).
+
+    Runs on each `DocumentAnswer.answer` *before* anything is persisted. A trip discards
+    the whole response -- every document's answer, not just the offending one -- and
+    returns a policy refusal. That is Phase 1's post-check behaviour and the reason is
+    unchanged: a blocked answer must never be a bypass path, and shipping the other
+    documents' answers from a turn that produced a prohibited one would leak the context
+    that made it prohibited.
+    """
+    reason = _first_match(answer, _GROUNDED_RESPONSE_RULES)
     return ScopeVerdict(blocked=reason is not None, reason=reason)

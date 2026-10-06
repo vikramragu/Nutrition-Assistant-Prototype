@@ -27,16 +27,6 @@
   color: var(--accent-foreground);
 }
 
-.assistant {
-  align-self: flex-start;
-  background: var(--panel-background);
-  border: 1px solid var(--border);
-}
-
-.assistant p {
-  margin: 0;
-}
-
 .error {
   align-self: center;
   background: var(--danger-background);
@@ -44,16 +34,113 @@
   border: 1px solid var(--danger);
 }
 
+/* --- An assistant turn: one block per document --- */
+
+.turn {
+  align-self: flex-start;
+  max-width: 92%;
+  display: flex;
+  flex-direction: column;
+  /* A real gap between blocks, not a hairline. Two documents must read as two documents
+     at a glance; adjacent bordered cards with no space between them merge visually, which
+     is exactly the blending the per-document design exists to prevent. */
+  gap: 12px;
+}
+
+.documentBlock {
+  background: var(--panel-background);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  line-height: 1.5;
+}
+
+.documentHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.publisher {
+  font-weight: 700;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--accent);
+}
+
+.year {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.documentName {
+  margin: 2px 0 8px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.answer {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
 .claims {
-  margin-top: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.claim {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
   font-size: 0.85rem;
   color: var(--muted);
 }
 
-.claims summary {
-  cursor: pointer;
+.claimText {
+  min-width: 0;
 }
 
-.claims ul {
-  margin: 6px 0 0 18px;
+.marker,
+.markerSelected {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.marker:hover {
+  background: var(--accent-tint);
+}
+
+.markerSelected {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.separateNote {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-style: italic;
 }
