@@ -344,11 +344,13 @@ runbook in [deployment.md](./deployment.md)
 which the Phase 2.0 pgvector check was run by hand in the Railway console. Everything buildable and
 measurable without one is done; the rest is a runbook.
 
-**The riskiest part of this deploy is silent:** Nixpacks has never been run against the new
-`nixpacks.toml`, and **a skipped build phase does not fail the deploy** — it moves the 64 MiB
-download back to boot, where it costs nothing until Hugging Face is slow. Read the build log for the
-prefetch output. [../../deployment.md §5](../../deployment.md) already flagged that Nixpacks' Python
-detection was never validated here.
+**The riskiest part of this deploy is silent, and it already bit once.** The build config shipped as
+`nixpacks.toml` — but **Railway builds with Railpack**, which does not read it, and Nixpacks is no
+longer a selectable builder. The weight-baking step would never have run, and **a skipped build step
+does not fail the deploy**: the service goes green and pays 15 s on cold starts whenever Hugging Face
+is slow. The test asserting the build config *passed*, because it checked the contents of a file
+without checking that the platform reads it. Now `backend/railway.json`, with the builder pinned in
+the same assertion as the command. Found on the first real deploy, 2026-10-06.
 
 **Found while doing this, and fixed:** `eval/runs/` was gitignored, so the Phase 1 regression runs —
 including one of the two files [prompt-inversion-regression.md](./prompt-inversion-regression.md)

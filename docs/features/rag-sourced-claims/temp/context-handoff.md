@@ -602,7 +602,7 @@ credentials**; the working agreement that no production credential enters a tran
 phase splits here, same as the 2.0 pgvector check.
 
 New: `scripts/prefetch_embedding_model.py` (bakes the 64 MiB of ONNX at build time),
-`backend/nixpacks.toml` (runs it in Railway's build phase), a FastAPI lifespan that loads the model
+`backend/railway.json` (a `buildCommand` that runs it), a FastAPI lifespan that loads the model
 at startup, `RETRIEVAL_K`/`RETRIEVAL_FLOOR` env vars defaulting to the measured values, and
 `tests/test_startup.py` (9 tests). The requirements split already existed — what was missing was any
 check that it holds.
@@ -621,9 +621,13 @@ pymupdf/pdfminer/trafilatura) imports the app, runs the lifespan and serves `/he
 also imports there, which is what makes "run the seed inside the deployed container" real. PyYAML
 turns out to arrive at runtime anyway via fastembed -> huggingface_hub.
 
-**The riskiest part of this deploy is silent.** Nixpacks has never been run against `nixpacks.toml`,
-and a skipped build phase **does not fail the deploy** — it moves the download back to boot, where it
-costs nothing until Hugging Face is slow. Read the build log for the prefetch output.
+**The riskiest part of this deploy is silent, and it already bit.** The build config shipped as
+`nixpacks.toml`; **Railway builds with Railpack**, which does not read it, and Nixpacks is no longer
+a selectable builder. The baking step would never have run — and a skipped build step **does not
+fail the deploy**, it moves the download back to boot where it costs nothing until Hugging Face is
+slow. The test asserting the build config *passed*, because it checked a file's contents without
+checking that the platform reads that file. Now `backend/railway.json`, with the builder pinned in
+the same assertion as the command. Read the build log for the prefetch output.
 
 **A 2.8 defect found and fixed here:** `eval/runs/` was gitignored, so the Phase 1 regression runs —
 one of the two files prompt-inversion-regression.md cites as evidence — could never be committed.

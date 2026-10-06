@@ -9,7 +9,7 @@ Order matters: deploy the backend first (you need its public URL before you can 
 ## 1. Backend — Railway
 
 1. **New Project → Deploy from GitHub repo** → select `vikramragu/Nutrition-Assistant-Prototype`.
-2. **Root Directory**: set to `backend` (Settings → Source). Railway's Nixpacks builder will detect `requirements.txt` and use the `Procfile` (`alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT`) as the start command — this runs migrations automatically on every deploy, so there's no separate manual migration step.
+2. **Root Directory**: set to `backend` (Settings → Source). Railway's builder (Railpack as of 2026-10; this guide was written when it was Nixpacks) will detect `requirements.txt` and use the `Procfile` (`alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT`) as the start command — this runs migrations automatically on every deploy, so there's no separate manual migration step.
 3. **Add a Postgres plugin** to the same project (`+ New` → `Database` → `PostgreSQL`). Railway auto-injects a `DATABASE_URL` reference into the backend service's variables once linked.
 4. **Environment variables** (Service → Variables):
    - `GROQ_API_KEY` — your Groq key (secret).
@@ -56,7 +56,7 @@ Mirrors the Phase 4/5 exit criteria, run against production instead of localhost
 
 ## 5. Known risk to check on first deploy
 
-Nixpacks' Python version auto-detection hasn't been verified against Railway specifically for this project (local dev runs Python 3.14, which is very new). If the build fails or resolves a different Python version than expected, check Railway's build logs first — this is the one part of the Railway config that wasn't validated locally before this guide was written.
+**Superseded:** Railway now builds with Railpack, not Nixpacks, so the Nixpacks Python-detection risk this section described is moot. The equivalent risk under Railpack is live and unvalidated — see features/rag-sourced-claims/deployment.md §6. The underlying advice is unchanged: read the build log first.
 
 ---
 
@@ -71,8 +71,8 @@ If the Vercel project's **Framework Preset** (Settings → Build and Deployment)
 This guide (Phase 6) still describes how Railway and Vercel are wired, and that wiring is
 unchanged. Phase 2 adds four things it does not cover:
 
-- 64 MiB of embedding weights **baked into the image at build time** (`nixpacks.toml`), and
-  the build-log line that proves it happened;
+- 64 MiB of embedding weights **baked into the image at build time**
+  (`backend/railway.json`'s `buildCommand`), and the build-log line that proves it happened;
 - the embedding model loaded at **application startup**, so a cold start waits for it rather
   than a user's first question;
 - four new, all-optional Railway variables — `EMBEDDING_MODEL`, `FASTEMBED_CACHE_PATH`,

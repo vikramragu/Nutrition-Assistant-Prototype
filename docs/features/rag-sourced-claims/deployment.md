@@ -22,7 +22,7 @@ otherwise.
 |---|---|
 `services/embeddings.py` — `DEFAULT_CACHE_PATH` / `CACHE_PATH` | One constant for where the weights live, so the build step and the runtime cannot disagree |
 `scripts/prefetch_embedding_model.py` — **new** | Downloads the 64 MiB of ONNX at image build time |
-`nixpacks.toml` — **new** | Runs the prefetch in Railway's build phase |
+`railway.json` — **new** | Sets `buildCommand` so Railpack runs the prefetch |
 `main.py` — lifespan + richer `/health` | Model loads at startup; the deploy's configuration is one curl away |
 `services/retriever.py` — `RETRIEVAL_K` / `RETRIEVAL_FLOOR` | Tunable on Railway, defaulting to the measured values, with a loud warning on override |
 `tests/test_startup.py` — **new**, 9 tests | The deployment properties that are otherwise only wrong in production |
@@ -116,6 +116,32 @@ deployed bundle inlines Vercel's value rather than this one.
 
 ## 3. Decisions
 
+### 3.0 The build config was wrong, and the test said it was fine
+
+Shipped as `nixpacks.toml`. **Railway builds with Railpack**, which does not read that file;
+Railway's current schema accepts only `RAILPACK` or `DOCKERFILE`, so Nixpacks is not even a
+selectable builder any more. The build step would never have run.
+
+It would not have failed, either — which is the whole point of §6's first risk, written
+before this was known: *a skipped build phase does not fail the deploy, it moves the
+download to boot*. The service would have gone green and paid 15 s on cold starts whenever
+Hugging Face was slow.
+
+Worse, `test_the_build_bakes_the_weights_into_the_image` **passed**. It asserted that
+`nixpacks.toml` contained the prefetch command — true, and irrelevant, because it never
+checked that the file was the one the platform reads. A test that confirms the contents of
+dead config is worse than no test: it converts an open question into a false answer.
+
+Now `railway.json`, documented and in-repo:
+
+```json
+{"build": {"builder": "RAILPACK",
+           "buildCommand": "python scripts/prefetch_embedding_model.py"}}
+```
+
+The builder is pinned **in the same assertion** as the command, so the command cannot go
+live under a builder that ignores it. Found on the first real deploy, 2026-10-06.
+
 ### 3.1 The baked path is the default, not a required variable
 
 `FASTEMBED_CACHE_PATH` is an *override*. `services.embeddings.CACHE_PATH` already defaults
@@ -127,8 +153,9 @@ start into a 15 s one that fails whenever Hugging Face is slow. Railway retries 
 boot, so the real symptom is a redeploy loop whose cause is three layers away. Making the
 default the baked location means forgetting the variable costs nothing.
 
-Two tests pin this: one asserts `nixpacks.toml` runs the prefetch, the other asserts the
-prefetch script imports `CACHE_PATH` rather than hardcoding a path.
+Two tests pin this: one asserts `railway.json` names the prefetch command *and* the builder
+that reads it, the other asserts the prefetch script imports `CACHE_PATH` rather than
+hardcoding a path.
 
 ### 3.2 Overriding the floor warns, loudly, at import
 
@@ -201,9 +228,11 @@ prefetching BAAI/bge-small-en-v1.5 into …/.fastembed_cache
 ok: 384 dimensions, 17 unique file(s), 67 MB on disk
 ```
 
-If that is absent, Nixpacks ignored `nixpacks.toml`. The deploy will still succeed — which
-is the problem — and the weights will download at boot instead. Fall back to
-Settings → Build → Build Command: `python scripts/prefetch_embedding_model.py`.
+If that is absent, Railpack did not pick up `backend/railway.json`. The deploy will still
+succeed — which is the problem — and the weights will download at boot instead. Two
+fallbacks, in order: set Settings → Config-as-code to `/backend/railway.json`, or set
+Settings → Build → Build Command directly to
+`python scripts/prefetch_embedding_model.py`.
 
 ### 4.3 Migration and seed
 
@@ -277,11 +306,15 @@ tested are tested; what remains is genuinely operational.
 
 ## 6. Risks carried into the deploy
 
-- **Nixpacks has never been run against `nixpacks.toml`.**
-  [../../deployment.md §5](../../deployment.md) already flagged that Nixpacks' Python
-  detection was never validated for this project, and the new build phase inherits that.
-  **A skipped build phase does not fail the deploy** — it silently moves the download to
-  boot. §4.2 says what to look for, and it is the single most likely thing to go wrong.
+- **The build config has still never produced a successful build.** It was wrong once
+  already (§3.0), and the corrected `railway.json` is documented but unexercised — the
+  first deploy attempt died in Railpack's own bootstrap, before reaching it. **A skipped
+  build step does not fail the deploy**, so §4.2's build-log check is the single most
+  important line in this runbook.
+- **Railway's builder changed under this project.** [../../deployment.md §5](../../deployment.md)
+  flagged Nixpacks' Python detection as unvalidated; that risk is now moot and replaced by
+  an unvalidated Railpack build. Worth re-reading the build log on the first *successful*
+  deploy rather than assuming.
 - **~350 MB resident is not 279 MB.** If the tier is 512 MB, there is less headroom than the
   plan assumed. The escape hatch, if it proves tight, is an API-based embedding provider —
   at the cost of the single-provider property that motivated the local model in the first

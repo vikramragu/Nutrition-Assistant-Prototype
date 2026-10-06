@@ -17,6 +17,7 @@ log on a real boot.
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -138,13 +139,28 @@ def test_procfile_runs_migrations_and_the_server_and_nothing_else():
 
 
 def test_the_build_bakes_the_weights_into_the_image():
-    """A missing build phase does not fail a deploy -- it moves the 64 MiB download back to
+    """A missing build step does not fail a deploy -- it moves the 64 MiB download back to
     boot, where it is invisible until the day Hugging Face is slow. So the build config is
-    pinned by a test rather than trusted."""
-    nixpacks = (BACKEND_ROOT / "nixpacks.toml").read_text()
+    pinned by a test rather than trusted.
 
-    assert "prefetch_embedding_model.py" in nixpacks
+    This test originally read `nixpacks.toml`, and passed, while the config it was reading
+    was **dead**: Railway's builder is Railpack, which does not read that file, and
+    Nixpacks is no longer a selectable builder at all. The test asserted a file's contents
+    rather than that the file was the one the platform reads -- so it confirmed exactly the
+    thing that was wrong. Found on the first real deploy, 2026-10-06.
+
+    Hence the builder assertion below: the build command is only live while the builder is
+    the one that reads this file.
+    """
+    config = json.loads((BACKEND_ROOT / "railway.json").read_text())
+
+    assert config["build"]["builder"] == "RAILPACK"
+    assert config["build"]["buildCommand"] == "python scripts/prefetch_embedding_model.py"
     assert (BACKEND_ROOT / "scripts" / "prefetch_embedding_model.py").exists()
+    assert not (BACKEND_ROOT / "nixpacks.toml").exists(), (
+        "nixpacks.toml is dead config -- Railway builds with Railpack. Leaving it around "
+        "is a trap for whoever next tries to change the build."
+    )
 
 
 def test_the_prefetch_script_and_the_app_agree_on_the_weights_path():

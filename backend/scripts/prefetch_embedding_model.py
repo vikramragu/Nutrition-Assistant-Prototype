@@ -1,7 +1,8 @@
 """Download the embedding weights at **image build time** (architecture.md §12.3).
 
-Run by `nixpacks.toml`'s build phase, so the 64 MB of ONNX weights are already in the image
-when the container starts.
+Run by `railway.json`'s `buildCommand`, so the 64 MiB of ONNX weights are already in the
+image when the container starts. (Railway builds with Railpack; an earlier `nixpacks.toml`
+was dead config -- see docs/features/rag-sourced-claims/deployment.md §3.0.)
 
 **Why this is not optional.** Measured 2026-10-04: loading the model warm takes 0.09 s;
 loading it cold, with a download, takes 15 s. A container that fetches 64 MB from Hugging
