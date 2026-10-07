@@ -1,26 +1,15 @@
 import ChatWindow from "./components/ChatWindow";
-import LeafIcon from "./components/LeafIcon";
-import OrchardBackground from "./components/OrchardBackground";
-import styles from "./page.module.css";
 
+/**
+ * `ChatWindow` renders the whole workspace — header, corpus rail, conversation and sources
+ * panel — because all four read the same state: the conversation, the corpus and which
+ * citation is selected. Keeping that in one client component leaves this page a server
+ * component with nothing to hydrate.
+ *
+ * The orchard background from Phase 1 is gone: DESIGN.md's layering is tonal, built from
+ * flat surface tokens, and a decorative illustration behind three translucent panels
+ * fought with the glassmorphism rather than supporting it.
+ */
 export default function Home() {
-  return (
-    <>
-      <OrchardBackground />
-      <main className={styles.main}>
-        <h1 className={styles.title}>
-          <LeafIcon />
-          AI Nutrition Assistant
-        </h1>
-        {/* ChatWindow renders the chat column *and* the sources panel as the two flex
-            children of this layout. The panel shows the passages behind the selected
-            answer, so it needs the same state the message list reads; keeping both in one
-            client component avoids a wrapper whose only job is to hold that state, and
-            leaves this page a server component. */}
-        <div className={styles.layout}>
-          <ChatWindow />
-        </div>
-      </main>
-    </>
-  );
+  return <ChatWindow />;
 }

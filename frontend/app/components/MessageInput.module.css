@@ -1,47 +1,104 @@
-.form {
+.dock {
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+  padding: 12px 24px 14px;
+  background: var(--glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--hairline);
+}
+
+.composer {
   display: flex;
+  align-items: flex-end;
   gap: 8px;
-  padding: 12px;
-  border-top: 1px solid var(--border);
+  width: 100%;
+  max-width: var(--stream-max);
+  margin: 0 auto;
+  padding: 8px 8px 8px 16px;
+  border-radius: var(--radius-xl);
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-2);
+  transition: border-color 0.15s ease;
+}
+
+.composer:focus-within {
+  border-color: color-mix(in srgb, var(--secondary) 45%, transparent);
 }
 
 .textarea {
   flex: 1;
+  min-width: 0;
   resize: none;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text);
   font: inherit;
-  background: var(--background);
-  color: var(--foreground);
-  transition: border-color 0.15s ease;
+  /* body-md */
+  font-size: 14px;
+  line-height: 22px;
+  padding: 8px 0;
+  max-height: 180px;
+  overflow-y: auto;
 }
 
 .textarea:focus {
   outline: none;
-  border-color: var(--accent);
+}
+
+.textarea::placeholder {
+  color: var(--outline);
 }
 
 .textarea:disabled {
   opacity: 0.6;
 }
 
-.button {
-  padding: 0 18px;
+.send {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
   border: none;
-  border-radius: 8px;
-  background: var(--accent);
-  color: var(--accent-foreground);
-  font-weight: 600;
+  border-radius: var(--radius-lg);
+  background: var(--primary);
+  color: var(--on-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: background 0.15s ease;
+  box-shadow: var(--shadow-1);
+  transition: background 0.15s ease, opacity 0.15s ease;
 }
 
-.button:hover:not(:disabled) {
-  background: var(--accent-hover);
+.send:hover:not(:disabled) {
+  background: var(--primary-container);
+  color: var(--on-primary-container);
 }
 
-.button:disabled {
-  opacity: 0.5;
+.send:disabled {
+  opacity: 0.4;
   cursor: not-allowed;
+}
+
+.disclaimer {
+  max-width: var(--stream-max);
+  margin: 10px auto 0;
+  text-align: center;
+  /* body-sm */
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--outline);
+}
+
+@media (max-width: 639px) {
+  .dock {
+    padding: 10px 16px 12px;
+  }
+
+  .disclaimer {
+    font-size: 11px;
+    line-height: 16px;
+  }
 }

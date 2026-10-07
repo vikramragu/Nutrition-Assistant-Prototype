@@ -1,21 +1,64 @@
-.chatWindow {
+.shell {
   display: flex;
   flex-direction: column;
-  flex: 2;
+  min-height: 100vh;
+}
+
+/* The three-panel workspace from DESIGN.md: corpus rail, conversation, sources inspector.
+   The rails are `position: sticky` within this row and scroll independently; the centre
+   column owns the page scroll, so the composer can dock to the bottom of the viewport. */
+.columns {
+  display: flex;
+  align-items: flex-start;
+  flex: 1;
+  min-height: 0;
+}
+
+.center {
+  flex: 1;
   min-width: 0;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--background);
-  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - var(--header-h));
 }
 
-.status {
-  padding: 24px;
-  color: var(--muted);
+.stream {
+  flex: 1;
 }
 
-.error {
-  padding: 24px;
-  color: var(--danger);
+.status,
+.statusError,
+.thinking {
+  max-width: var(--stream-max);
+  margin: 0 auto;
+  padding: 32px 24px;
+  /* body-md */
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.statusError {
+  color: var(--error);
+}
+
+.thinking {
+  padding: 4px 24px 24px;
+  color: var(--outline);
+  font-style: italic;
+}
+
+/* Below 1024px the sources panel stops being a rail (its own stylesheet switches it to a
+   static block) and the row has to stack so it lands under the conversation instead of
+   beside it. */
+@media (max-width: 1023px) {
+  .columns {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .center {
+    min-height: auto;
+  }
 }

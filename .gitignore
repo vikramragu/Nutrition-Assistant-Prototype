@@ -36,3 +36,6 @@ backend/.fastembed_cache/
 
 # Claude Code local settings (personal, not shared)
 .claude/settings.local.json
+
+# Design reference material — inputs, not source (see design/README.md)
+design/stitch/

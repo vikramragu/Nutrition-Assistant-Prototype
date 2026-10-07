@@ -1,62 +1,131 @@
-/* Informational, not a warning. RefusalNotice uses the amber --warning-* pair for a policy
-   boundary; this uses the green --accent-tint, because a coverage gap is a fact about the
-   corpus rather than a line the user tried to cross. Four states have to be tellable apart
-   at a glance: answer (bordered panel, left-aligned), policy refusal (amber, centred),
-   coverage refusal (green-tinted, centred, dashed), error (red, centred). */
+/* Coverage refusal — "the corpus does not".
+ *
+ * Sage/secondary, DASHED border, a book icon. RefusalNotice is terracotta, SOLID, with a
+ * shield. Informational rather than a warning, because a coverage gap is a fact about the
+ * documents, not a line the reader tried to cross. The dashed border carries the
+ * distinction into greyscale, where the two hues would collapse into the same grey. */
 .notice {
-  align-self: center;
-  max-width: 85%;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: var(--accent-tint);
-  /* Dashed, so the two centred notices differ by shape and not only by hue -- the
-     distinction has to survive a monochrome screenshot and a red-green colour deficiency. */
-  border: 1px dashed var(--accent);
-  font-size: 0.9rem;
+  padding: 16px 18px;
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--secondary-container) 40%, var(--card));
+  border: 1px dashed var(--secondary);
+  color: var(--text);
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.icon {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--secondary) 16%, transparent);
+  color: var(--secondary);
+}
+
+.headBody {
+  min-width: 0;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  /* label-lg */
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--text);
 }
 
 .badge {
-  display: inline-block;
-  font-weight: 600;
-  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--secondary) 20%, transparent);
+  color: var(--on-secondary-container);
+  /* label-sm */
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  margin-bottom: 4px;
-  color: var(--accent);
 }
 
 .message {
-  margin: 0;
+  /* body-md */
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--text-muted);
+  margin-top: 6px;
 }
 
 .searched {
-  margin-top: 8px;
-  font-size: 0.85rem;
-  color: var(--muted);
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline);
 }
 
-.searched summary {
+.summary {
   cursor: pointer;
+  /* label-sm */
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--outline);
 }
 
-.searched ul {
-  margin: 6px 0 0 18px;
+.summary:hover {
+  color: var(--secondary);
+}
+
+.list {
+  list-style: none;
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+@media (min-width: 720px) {
+  .list {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.item {
   display: flex;
   flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.docLink {
+  display: inline-flex;
+  align-items: center;
   gap: 4px;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--text);
 }
 
-.searched a {
+.docLink:hover {
+  color: var(--secondary);
   text-decoration: underline;
-  color: var(--foreground);
-}
-
-.searched a:hover {
-  color: var(--accent);
 }
 
 .provenance {
-  display: block;
-  font-size: 0.78rem;
-  color: var(--muted);
+  font-size: 11px;
+  line-height: 15px;
+  color: var(--outline);
 }

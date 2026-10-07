@@ -1,172 +1,221 @@
 .panel {
-  flex: 1;
-  min-width: 220px;
-  max-width: 320px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
-  background: var(--panel-background);
-  /* Was `height: fit-content`. The panel now holds quoted passages and can outgrow the
-     chat column, so it scrolls within the layout instead of stretching the page. */
-  align-self: stretch;
-  max-height: 100%;
+  width: var(--rail-right);
+  flex-shrink: 0;
+  background: var(--rail);
+  border-left: 1px solid var(--hairline);
+  position: sticky;
+  top: var(--header-h);
+  height: calc(100vh - var(--header-h));
   overflow-y: auto;
 }
 
-.heading {
+.head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 18px 16px 12px;
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.headRow {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 1rem;
+  gap: 8px;
+}
+
+.headIcon {
+  color: var(--secondary);
+  flex-shrink: 0;
+}
+
+.title {
+  /* headline-sm */
+  font-size: 18px;
+  line-height: 24px;
   font-weight: 600;
-  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.badge {
+  margin-left: auto;
+  padding: 2px 9px;
+  border-radius: var(--radius-xl);
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.subtitle,
+.empty {
+  /* body-sm */
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-muted);
+}
+
+.subtitle {
+  margin-top: 4px;
 }
 
 .empty {
-  color: var(--muted);
-  font-size: 0.9rem;
+  padding: 20px 16px;
 }
 
-/* --- Idle state: the corpus --- */
-
-.list {
-  margin: 12px 0 0;
-  padding: 0;
+.stack {
   list-style: none;
+  padding: 14px 16px 24px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
-.listItem {
-  border-radius: 6px;
-  padding: 6px;
-  font-size: 0.88rem;
-  transition: background 0.15s ease;
+.card,
+.cardSelected {
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-1);
+  padding: 14px;
+  scroll-margin-top: 90px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
-.listItem:hover {
-  background: var(--accent-tint);
+.card:hover {
+  box-shadow: var(--shadow-2);
 }
 
-.listItem a {
-  text-decoration: underline;
-  font-weight: 600;
+/* DESIGN.md's "active selection glow": an accent halo rather than a colour swap, so the
+   selected card is identifiable without relying on hue alone. */
+.cardSelected {
+  border-color: color-mix(in srgb, var(--secondary) 45%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--secondary) 35%, transparent), var(--shadow-2);
+  background: color-mix(in srgb, var(--secondary-container) 22%, var(--card));
 }
 
-.listItem a:hover {
-  color: var(--accent);
-}
-
-.provenance {
-  display: block;
-  font-size: 0.78rem;
-  color: var(--muted);
-  margin-top: 2px;
-}
-
-/* --- Selected state: the passages behind the answer --- */
-
-.citations {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.cardButton {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.citation,
-.citationSelected {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px;
-  background: var(--background);
-}
-
-/* The highlight is a left bar plus a tinted background, not a colour change alone, so the
-   selected passage is identifiable without relying on hue. */
-.citationSelected {
-  border-color: var(--accent);
-  background: var(--accent-tint);
-  box-shadow: inset 3px 0 0 var(--accent);
-}
-
-.citationButton {
-  display: flex;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
   text-align: left;
   background: none;
   border: none;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
   padding: 0;
+  cursor: pointer;
 }
 
-.marker {
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.marker,
+.markerSelected {
   flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--accent-foreground);
-  font-size: 0.72rem;
-  font-weight: 700;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius);
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
 }
 
-.citationBody {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
+.markerSelected {
+  background: var(--primary-container);
+  color: var(--on-primary-container);
 }
 
-.documentName {
+.docName {
+  /* label-lg */
+  font-size: 14px;
+  line-height: 20px;
   font-weight: 600;
-  font-size: 0.88rem;
+  letter-spacing: 0.01em;
+  color: var(--text);
 }
 
-.section {
-  font-size: 0.78rem;
-  color: var(--muted);
+.provenance {
+  /* label-sm */
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--outline);
 }
 
 .quote {
-  margin-top: 6px;
-  font-size: 0.82rem;
-  line-height: 1.45;
+  /* body-sm, italic, as in the design's excerpt cards */
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 19px;
+  font-style: italic;
+  color: var(--text-muted);
   border-left: 2px solid var(--border);
-  padding-left: 8px;
-  color: var(--foreground);
-  /* The quoted passage can be an oversized chunk -- a whole table or numbered list that
-     the chunker deliberately refused to split. Cap it so one long passage cannot push the
-     rest of the citations out of view; the full text is in the linked document. */
-  max-height: 11rem;
+  padding-left: 10px;
+  /* A quoted chunk can be a whole table the chunker deliberately refused to split, so it
+     scrolls rather than pushing the other sources off the panel. */
+  max-height: 10.5rem;
   overflow-y: auto;
   white-space: pre-wrap;
+  quotes: none;
+}
+
+.cardFoot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--hairline);
+}
+
+.section {
+  font-size: 11px;
+  line-height: 15px;
+  color: var(--outline);
+  min-width: 0;
 }
 
 .sourceLink {
-  display: inline-block;
-  margin-top: 8px;
-  margin-left: 28px;
-  font-size: 0.78rem;
-  text-decoration: underline;
-  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--secondary);
 }
 
 .sourceLink:hover {
-  color: var(--accent);
+  text-decoration: underline;
 }
 
-@media (max-width: 720px) {
+/* Below 1024px the panel stops being a rail and becomes a normal block under the stream,
+   so the sources stay reachable on a tablet or phone without a drawer. */
+@media (max-width: 1023px) {
   .panel {
-    max-width: none;
-    max-height: none;
+    width: 100%;
+    position: static;
+    height: auto;
+    border-left: none;
+    border-top: 1px solid var(--hairline);
+  }
+
+  .head {
+    position: static;
   }
 }

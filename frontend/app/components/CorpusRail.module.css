@@ -1,0 +1,90 @@
+.rail {
+  width: var(--rail-left);
+  flex-shrink: 0;
+  background: var(--rail);
+  border-right: 1px solid var(--hairline);
+  padding: 20px 16px;
+  overflow-y: auto;
+  /* Its own scroll region, pinned under the header. */
+  position: sticky;
+  top: var(--header-h);
+  height: calc(100vh - var(--header-h));
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.headIcon {
+  color: var(--secondary);
+  flex-shrink: 0;
+}
+
+.title {
+  /* label-lg */
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--text);
+}
+
+.note {
+  /* body-sm */
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  transition: background 0.15s ease;
+}
+
+.item:hover {
+  background: var(--container);
+}
+
+.docLink {
+  /* label-md, but readable as a title */
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.docLink:hover {
+  color: var(--secondary);
+  text-decoration: underline;
+}
+
+.meta,
+.count {
+  /* body-sm */
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--outline);
+}
+
+/* Below 1280px the design collapses this rail; the corpus is still reachable from the
+   refusal notice, which lists every document it searched. */
+@media (max-width: 1279px) {
+  .rail {
+    display: none;
+  }
+}

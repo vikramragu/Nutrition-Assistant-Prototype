@@ -1,108 +1,197 @@
-.list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
+.stream {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 28px;
+  width: 100%;
+  max-width: var(--stream-max);
+  margin: 0 auto;
+  padding: 32px 24px 40px;
 }
 
+/* --- Empty state --- */
+
 .empty {
-  padding: 24px;
-  color: var(--muted);
+  max-width: var(--stream-max);
+  margin: 0 auto;
+  padding: 72px 24px 40px;
   text-align: center;
 }
 
-.bubble {
-  max-width: 80%;
-  padding: 10px 14px;
-  border-radius: 12px;
-  line-height: 1.5;
-  white-space: pre-wrap;
+.emptyTitle {
+  /* headline-md */
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--text);
 }
 
-.user {
-  align-self: flex-end;
-  background: var(--accent);
-  color: var(--accent-foreground);
+.emptyBody {
+  /* body-lg */
+  font-size: 16px;
+  line-height: 26px;
+  color: var(--text-muted);
+  margin: 10px auto 24px;
+  max-width: 52ch;
 }
 
-.error {
-  align-self: center;
-  background: var(--danger-background);
-  color: var(--danger);
-  border: 1px solid var(--danger);
-}
-
-/* --- An assistant turn: one block per document --- */
-
-.turn {
-  align-self: flex-start;
-  max-width: 92%;
+.starters {
   display: flex;
   flex-direction: column;
-  /* A real gap between blocks, not a hairline. Two documents must read as two documents
-     at a glance; adjacent bordered cards with no space between them merge visually, which
-     is exactly the blending the per-document design exists to prevent. */
-  gap: 12px;
+  gap: 8px;
+  align-items: center;
 }
 
-.documentBlock {
-  background: var(--panel-background);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 14px;
-  line-height: 1.5;
+.starter {
+  max-width: 100%;
+  padding: 10px 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--hairline);
+  background: var(--card);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 20px;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-1);
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.documentHeader {
+.starter:hover {
+  background: var(--container);
+  border-color: color-mix(in srgb, var(--secondary) 40%, transparent);
+}
+
+/* --- User turn --- */
+
+.userRow {
   display: flex;
-  align-items: baseline;
+  justify-content: flex-end;
+}
+
+.userBubble {
+  max-width: 85%;
+  padding: 12px 18px;
+  border-radius: var(--radius-xl);
+  /* Asymmetric lower-right, per DESIGN.md's chat bubble spec. */
+  border-bottom-right-radius: var(--radius-sm);
+  background: var(--container-high);
+  color: var(--text);
+  /* body-lg */
+  font-size: 16px;
+  line-height: 26px;
+  font-weight: 500;
+  white-space: pre-wrap;
+  box-shadow: var(--shadow-1);
+}
+
+/* --- Assistant turn: one card per document --- */
+
+.turn {
+  display: flex;
+  flex-direction: column;
+  /* A real gap, not a hairline. Adjacent bordered cards with no space between them merge
+     visually, which is exactly the blending per-document answering exists to prevent. */
+  gap: 14px;
+}
+
+.telemetry {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--container);
+  color: var(--text-muted);
+  /* label-sm */
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.telemetryIcon {
+  color: var(--secondary);
+  flex-shrink: 0;
+}
+
+.telemetry strong {
+  color: var(--text);
+}
+
+.docCard {
+  border-radius: var(--radius-xl);
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-1);
+  padding: 20px 24px;
+}
+
+.docHead {
+  display: flex;
+  align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
 
 .publisher {
+  /* label-sm, uppercase — the design's section eyebrow */
+  font-size: 11px;
+  line-height: 14px;
   font-weight: 700;
-  font-size: 0.82rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--accent);
+  color: var(--secondary);
+}
+
+.dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--border);
 }
 
 .year {
-  font-size: 0.78rem;
-  color: var(--muted);
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+  color: var(--outline);
 }
 
-.documentName {
-  margin: 2px 0 8px;
-  font-size: 0.82rem;
-  color: var(--muted);
+.docName {
+  /* label-md */
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--outline);
+  margin: 4px 0 12px;
 }
 
 .answer {
-  margin: 0;
+  /* body-lg — DESIGN.md sets 16/26 for assistant responses, for sustained reading. */
+  font-size: 16px;
+  line-height: 26px;
+  color: var(--text);
   white-space: pre-wrap;
 }
 
 .claims {
-  margin: 10px 0 0;
-  padding: 0;
   list-style: none;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  border-top: 1px solid var(--border);
-  padding-top: 8px;
+  gap: 9px;
 }
 
 .claim {
   display: flex;
-  gap: 8px;
   align-items: flex-start;
-  font-size: 0.85rem;
-  color: var(--muted);
+  gap: 10px;
+  /* body-md */
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--text-muted);
 }
 
 .claimText {
@@ -112,35 +201,82 @@
 .marker,
 .markerSelected {
   flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 1px solid var(--accent);
-  background: none;
-  color: var(--accent);
-  font: inherit;
-  font-size: 0.72rem;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--secondary-container) 60%, transparent);
+  color: var(--on-secondary-container);
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .marker:hover {
-  background: var(--accent-tint);
+  background: var(--secondary-container);
 }
 
 .markerSelected {
-  background: var(--accent);
-  color: var(--accent-foreground);
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  border-color: color-mix(in srgb, var(--secondary) 45%, transparent);
 }
 
 .separateNote {
-  margin: 0;
-  font-size: 0.78rem;
-  color: var(--muted);
+  /* body-sm */
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--outline);
   font-style: italic;
+}
+
+/* --- Transport error: the fourth state --- */
+
+.errorCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: var(--radius-lg);
+  background: var(--error-container);
+  border: 1px solid var(--error);
+  color: var(--on-error-container);
+}
+
+.errorIcon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--error);
+}
+
+.errorTitle {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.errorBody {
+  font-size: 13px;
+  line-height: 20px;
+  margin-top: 2px;
+}
+
+@media (max-width: 639px) {
+  .stream {
+    padding: 20px 16px 32px;
+    gap: 22px;
+  }
+
+  .docCard {
+    padding: 16px;
+  }
+
+  .empty {
+    padding: 40px 16px 24px;
+  }
 }

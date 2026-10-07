@@ -1,60 +1,152 @@
+/* Design tokens — from design/stitch/DESIGN.md.
+ *
+ * Three declarations of the same names, in this order, and the order is the whole trick:
+ *   1. :root                                   light, the default
+ *   2. @media (prefers-color-scheme: dark)     follow the OS...
+ *      :root:not([data-theme="light"])         ...unless the user chose light explicitly
+ *   3. :root[data-theme="dark"]                an explicit dark choice beats the OS
+ *
+ * Without the :not() in rule 2, a user who picks light on a dark-mode machine gets dark
+ * anyway, because the media query would still match. ThemeToggle writes the attribute and
+ * an inline script in layout.tsx applies it before first paint, so there is no flash.
+ *
+ * The light values are DESIGN.md's frontmatter tokens, which are what code.html and
+ * screen.png actually use. DESIGN.md's prose also describes a warmer light canvas
+ * (#F8F9F8 "linen sand") that disagrees with its own token block; the tokens win, since
+ * they are what the design was rendered with. Dark has no token block at all, so it is
+ * built from the five values the prose does give, with the rest derived to match.
+ */
+
 :root {
-  --background: #f1f8f2;
-  --foreground: #1f2a22;
-  --panel-background: #f1f7f2;
-  --border: #d9e6dc;
-  --accent: #3f7a5c;
-  --accent-hover: #4f9070;
-  --accent-tint: #e3f3e8;
-  --accent-foreground: #ffffff;
-  --leaf: #6fae82;
-  --muted: #5f7267;
-  --danger: #b91c1c;
-  --danger-background: #fef2f2;
-  --warning-background: #fffbeb;
-  --warning-border: #fde68a;
-  --trunk: #8a5a3a;
+  --canvas: #f6faff;
+  --card: #ffffff;
+  --rail: #ecf5fe;
+  --container: #e6eff8;
+  --container-high: #e0e9f2;
+  --container-highest: #dbe4ed;
+
+  --text: #141d23;
+  --text-muted: #414844;
+  --outline: #717973;
+  --border: #c1c8c2;
+  --hairline: rgb(27 67 50 / 0.1);
+
+  --primary: #012d1d;
+  --on-primary: #ffffff;
+  --primary-container: #1b4332;
+  --on-primary-container: #86af99;
+  --primary-dim: #a5d0b9;
+
+  --secondary: #3f665c;
+  --secondary-container: #bee8dc;
+  --on-secondary-container: #2b4f46;
+
+  /* Policy refusal — "the assistant will not". DESIGN.md's Safety Precaution tokens. */
+  --caution: #c05621;
+  --caution-container: #feebc8;
+  --on-caution-container: #7c2d12;
+
+  /* Error — transport/server failure, distinct from either refusal. */
+  --error: #ba1a1a;
+  --error-container: #ffdad6;
+  --on-error-container: #93000a;
+
+  --shadow-1: 0 1px 3px 0 rgb(27 67 50 / 0.04), 0 1px 2px -1px rgb(27 67 50 / 0.04);
+  --shadow-2: 0 12px 32px -8px rgb(20 45 34 / 0.12);
+  --glass: rgb(255 255 255 / 0.82);
+
+  --radius-sm: 0.25rem;
+  --radius: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+
+  --rail-left: 264px;
+  --rail-right: 380px;
+  --header-h: 64px;
+  --stream-max: 768px;
+
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f1410;
-    --foreground: #e7f0e9;
-    --panel-background: #161c17;
-    --border: #26332a;
-    --accent: #5fae82;
-    --accent-hover: #74c096;
-    --accent-tint: #1d2b22;
-    --accent-foreground: #08110c;
-    --leaf: #7fc39a;
-    --muted: #93a89b;
-    --danger: #f87171;
-    --danger-background: #2a1414;
-    --warning-background: #2a2414;
-    --warning-border: #4a3f1a;
-    --trunk: #6b4530;
+  :root:not([data-theme="light"]) {
+    --canvas: #0e1512;
+    --card: #151f1a;
+    --rail: #1b2721;
+    --container: #1f2d26;
+    --container-high: #24352c;
+    --container-highest: #2a3d33;
+
+    --text: #ecf3ef;
+    --text-muted: #a8bdb2;
+    --outline: #7d938a;
+    --border: #25352d;
+    --hairline: rgb(197 236 204 / 0.1);
+
+    --primary: #a5d0b9;
+    --on-primary: #00251a;
+    --primary-container: #2d6a4f;
+    --on-primary-container: #c1ecd4;
+    --primary-dim: #3f6653;
+
+    --secondary: #a6cfc3;
+    --secondary-container: #274e45;
+    --on-secondary-container: #c1ebdf;
+
+    --caution: #f0a46a;
+    --caution-container: #3a2415;
+    --on-caution-container: #fcd9b6;
+
+    --error: #ffb4ab;
+    --error-container: #3a1512;
+    --on-error-container: #ffdad6;
+
+    --shadow-1: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+    --shadow-2: 0 12px 32px -8px rgb(0 0 0 / 0.45);
+    --glass: rgb(21 31 26 / 0.85);
+
+    color-scheme: dark;
   }
 }
 
-html {
-  height: 100%;
-}
+:root[data-theme="dark"] {
+  --canvas: #0e1512;
+  --card: #151f1a;
+  --rail: #1b2721;
+  --container: #1f2d26;
+  --container-high: #24352c;
+  --container-highest: #2a3d33;
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
+  --text: #ecf3ef;
+  --text-muted: #a8bdb2;
+  --outline: #7d938a;
+  --border: #25352d;
+  --hairline: rgb(197 236 204 / 0.1);
 
-body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --primary: #a5d0b9;
+  --on-primary: #00251a;
+  --primary-container: #2d6a4f;
+  --on-primary-container: #c1ecd4;
+  --primary-dim: #3f6653;
+
+  --secondary: #a6cfc3;
+  --secondary-container: #274e45;
+  --on-secondary-container: #c1ebdf;
+
+  --caution: #f0a46a;
+  --caution-container: #3a2415;
+  --on-caution-container: #fcd9b6;
+
+  --error: #ffb4ab;
+  --error-container: #3a1512;
+  --on-error-container: #ffdad6;
+
+  --shadow-1: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+  --shadow-2: 0 12px 32px -8px rgb(0 0 0 / 0.45);
+  --glass: rgb(21 31 26 / 0.85);
+
+  color-scheme: dark;
 }
 
 * {
@@ -63,13 +155,51 @@ body {
   margin: 0;
 }
 
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  min-height: 100%;
+  color: var(--text);
+  background: var(--canvas);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  /* body-md */
+  font-size: 14px;
+  line-height: 22px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 a {
   color: inherit;
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+button {
+  font: inherit;
+  color: inherit;
+}
+
+/* One visible focus style for the whole app. Several controls here are icon-only, and a
+   keyboard user has no other way to tell where they are. */
+:where(a, button, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--secondary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

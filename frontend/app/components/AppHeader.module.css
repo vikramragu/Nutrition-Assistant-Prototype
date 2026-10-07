@@ -1,0 +1,130 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 24px;
+  /* Glassmorphic level 2 from DESIGN.md: the stream scrolls under it. */
+  background: var(--glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.mark {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  color: var(--on-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wordmark {
+  /* headline-sm */
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.status {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin: 0 auto;
+  padding: 5px 14px;
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--secondary-container) 45%, transparent);
+  color: var(--on-secondary-container);
+  /* label-sm */
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.statusIcon {
+  flex-shrink: 0;
+  color: var(--secondary);
+}
+
+/* The status pill is the first thing to go when space is tight: it is reassurance, and
+   the same counts are listed in full in the corpus rail. */
+@media (min-width: 1100px) {
+  .status {
+    display: flex;
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.textButton,
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--container);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.textButton {
+  height: 36px;
+  padding: 0 12px;
+  /* label-md */
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.iconButton {
+  width: 36px;
+  height: 36px;
+}
+
+.textButton:hover:not(:disabled),
+.iconButton:hover {
+  background: var(--container-high);
+  color: var(--text);
+}
+
+.textButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.textButtonLabel {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .textButtonLabel {
+    display: inline;
+  }
+}

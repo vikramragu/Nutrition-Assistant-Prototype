@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createConversation, getConversation, sendChatMessage } from "@/lib/api";
+import {
+  createConversation,
+  getConversation,
+  getCorpus,
+  sendChatMessage,
+  type CorpusResponse,
+} from "@/lib/api";
+import AppHeader from "./AppHeader";
+import CorpusRail from "./CorpusRail";
 import { latestAnsweredMessageId, toDisplayMessages } from "./history";
 import MessageInput from "./MessageInput";
 import MessageList from "./MessageList";
@@ -33,23 +41,36 @@ function newLocalId(): string {
   return `local-${localIdCounter}-${Date.now()}`;
 }
 
+/**
+ * Owns the conversation, the corpus and the citation selection, and lays out the three
+ * columns the design calls for.
+ *
+ * Selection lives here because `messages` does: the stream and the sources panel read the
+ * same turn from two angles, and splitting the two pieces of state would mean keeping them
+ * in step by hand.
+ */
 export default function ChatWindow() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
+  const [draft, setDraft] = useState("");
   const [isInitializing, setIsInitializing] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
-  // Which passage the panel is showing. Lives here because `messages` does: the panel and
-  // the message list are reading the same turn from two angles, and splitting the two
-  // pieces of state would mean keeping them in step by hand.
   const [selection, setSelection] = useState<CitationSelection | null>(null);
+  const [corpus, setCorpus] = useState<CorpusResponse | null>(null);
+  const [corpusError, setCorpusError] = useState(false);
   const hasInitialized = useRef(false);
+  const streamEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (hasInitialized.current) return;
     hasInitialized.current = true;
 
     let cancelled = false;
+
+    getCorpus()
+      .then((loaded) => !cancelled && setCorpus(loaded))
+      .catch(() => !cancelled && setCorpusError(true));
 
     async function init() {
       const storedId = readStoredConversationId();
@@ -80,7 +101,7 @@ export default function ChatWindow() {
           }
         } catch {
           if (!cancelled) {
-            setInitError("Could not connect to the backend. Please refresh to try again.");
+            setInitError("Could not reach the assistant. Please refresh to try again.");
           }
         }
       }
@@ -94,11 +115,32 @@ export default function ChatWindow() {
     };
   }, []);
 
+  // Keep the newest turn in view as it arrives.
+  useEffect(() => {
+    streamEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages.length, isSending]);
+
   const selectedCitations = useMemo(() => {
     if (selection === null) return [];
     const selected = messages.find((message) => message.id === selection.messageId);
     return selected ? citationsOf(selected) : [];
   }, [messages, selection]);
+
+  async function startNewConversation() {
+    try {
+      const conversation = await createConversation();
+      setConversationId(conversation.id);
+      storeConversationId(conversation.id);
+      setMessages([]);
+      setSelection(null);
+      setDraft("");
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { kind: "error", id: newLocalId(), message: "Could not start a new conversation." },
+      ]);
+    }
+  }
 
   async function handleSend(text: string) {
     if (!conversationId) return;
@@ -127,9 +169,8 @@ export default function ChatWindow() {
             searched: response.searched,
           },
         ]);
-        // A coverage refusal has no passages. Clearing the selection sends the panel back
-        // to the corpus list, which is the most useful thing it can show at that moment:
-        // the user just asked for something outside it.
+        // A coverage refusal has no passages, so the panel goes back to its idle state
+        // rather than keeping the previous answer's sources on screen next to it.
         setSelection(null);
       } else {
         setMessages((prev) => [
@@ -141,61 +182,65 @@ export default function ChatWindow() {
       console.error("Chat request failed:", error);
       setMessages((prev) => [
         ...prev,
-        { kind: "error", id: newLocalId(), message: "Something went wrong. Please try again." },
+        { kind: "error", id: newLocalId(), message: "Please try again in a moment." },
       ]);
     } finally {
       setIsSending(false);
     }
   }
 
-  // The panel renders in every state, including while the conversation loads, so it can
-  // answer "what can this thing see?" before anything else works. It is a sibling of the
-  // chat column in the page's flex layout rather than a child of it, which is why this
-  // component returns a fragment: the shared selection state lives next to `messages`, and
-  // lifting both into a new wrapper would have been a larger change than the panel needs.
-  const panel = (
-    <SourcesPanel
-      citations={selectedCitations}
-      selectedIndex={selection?.index ?? null}
-      onSelect={(index) =>
-        setSelection(selection === null ? null : { messageId: selection.messageId, index })
-      }
-    />
-  );
-
-  if (isInitializing) {
-    return (
-      <>
-        <div className={styles.chatWindow}>
-          <p className={styles.status}>Loading conversation…</p>
-        </div>
-        {panel}
-      </>
-    );
-  }
-
-  if (initError) {
-    return (
-      <>
-        <div className={styles.chatWindow}>
-          <p className={styles.error}>{initError}</p>
-        </div>
-        {panel}
-      </>
-    );
-  }
-
   return (
-    <>
-      <div className={styles.chatWindow}>
-        <MessageList
-          messages={messages}
-          selection={selection}
-          onSelectCitation={setSelection}
+    <div className={styles.shell}>
+      <AppHeader
+        documentCount={corpus?.documents.length ?? null}
+        chunkCount={corpus?.chunk_count ?? null}
+        onReset={startNewConversation}
+        resetDisabled={isSending || isInitializing || messages.length === 0}
+      />
+
+      <div className={styles.columns}>
+        <CorpusRail corpus={corpus} error={corpusError} />
+
+        <main className={styles.center}>
+          <div className={styles.stream}>
+            {isInitializing ? (
+              <p className={styles.status}>Loading…</p>
+            ) : initError ? (
+              <p className={styles.statusError}>{initError}</p>
+            ) : (
+              <>
+                <MessageList
+                  messages={messages}
+                  selection={selection}
+                  onSelectCitation={setSelection}
+                  onPickStarter={setDraft}
+                />
+                {isSending && (
+                  <p className={styles.thinking} role="status">
+                    Searching the guidance…
+                  </p>
+                )}
+              </>
+            )}
+            <div ref={streamEndRef} />
+          </div>
+
+          <MessageInput
+            value={draft}
+            onChange={setDraft}
+            onSend={handleSend}
+            disabled={isSending || isInitializing || !conversationId}
+          />
+        </main>
+
+        <SourcesPanel
+          citations={selectedCitations}
+          selectedIndex={selection?.index ?? null}
+          onSelect={(index) =>
+            setSelection(selection === null ? null : { messageId: selection.messageId, index })
+          }
         />
-        <MessageInput onSend={handleSend} disabled={isSending} />
       </div>
-      {panel}
-    </>
+    </div>
   );
 }

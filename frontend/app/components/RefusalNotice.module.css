@@ -1,22 +1,64 @@
+/* Policy refusal — "the assistant will not".
+ *
+ * Terracotta (DESIGN.md's Safety Precaution token), SOLID border, a shield icon and an
+ * "Outside scope" badge. NotInCorpusNotice is sage, DASHED, with a book icon. The two
+ * differ by colour *and* border style *and* icon *and* wording, so the distinction
+ * survives a greyscale screenshot and a red-green colour deficiency — the brief requires
+ * a user to tell them apart, and hue alone would not do it. */
 .notice {
-  align-self: center;
-  max-width: 85%;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: var(--warning-background);
-  border: 1px solid var(--warning-border);
-  font-size: 0.9rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: var(--radius-lg);
+  background: var(--caution-container);
+  border: 1px solid var(--caution);
+  color: var(--on-caution-container);
+}
+
+.icon {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--caution) 18%, transparent);
+  color: var(--caution);
+}
+
+.body {
+  min-width: 0;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  /* label-lg */
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .badge {
-  display: inline-block;
-  font-weight: 600;
-  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--caution) 20%, transparent);
+  /* label-sm */
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  margin-bottom: 4px;
 }
 
-.notice p {
-  margin: 0;
+.message {
+  /* body-md */
+  font-size: 14px;
+  line-height: 22px;
+  margin-top: 6px;
 }
