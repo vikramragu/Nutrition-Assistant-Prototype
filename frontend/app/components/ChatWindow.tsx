@@ -62,57 +62,64 @@ export default function ChatWindow() {
   const hasInitialized = useRef(false);
   const streamEndRef = useRef<HTMLDivElement>(null);
 
+  /**
+   * Start-up: load the corpus, and either rehydrate the stored conversation or create one.
+   *
+   * `hasInitialized` makes this run once. There is deliberately **no `cancelled` flag**,
+   * and that is the fix for a bug inherited from Phase 1 that made the app hang on
+   * "Loading…" forever in development:
+   *
+   *   1. the effect runs, sets the guard, starts the request, returns a cleanup
+   *   2. React Strict Mode immediately tears the effect down — cleanup sets `cancelled`
+   *   3. Strict Mode runs the effect again; the guard returns early, so nothing restarts
+   *   4. the one real request resolves into `if (!cancelled)` branches that are all now
+   *      false, so no state is ever set
+   *
+   * It never showed in production because Strict Mode only double-invokes in development,
+   * which is exactly the kind of bug that survives a deploy and greets the next person to
+   * run the app locally.
+   *
+   * Dropping the flag means a result can land after unmount. React 18 removed the warning
+   * for that precisely because it was mostly noise, and here the component unmounts only
+   * when the page does.
+   */
   useEffect(() => {
     if (hasInitialized.current) return;
     hasInitialized.current = true;
 
-    let cancelled = false;
-
     getCorpus()
-      .then((loaded) => !cancelled && setCorpus(loaded))
-      .catch(() => !cancelled && setCorpusError(true));
+      .then(setCorpus)
+      .catch(() => setCorpusError(true));
 
     async function init() {
       const storedId = readStoredConversationId();
-      let hydrated = false;
 
       if (storedId) {
         try {
           const conversation = await getConversation(storedId);
-          if (!cancelled) {
-            setConversationId(conversation.id);
-            const display = toDisplayMessages(conversation);
-            setMessages(display);
-            const latest = latestAnsweredMessageId(display);
-            if (latest !== null) setSelection({ messageId: latest, index: 0 });
-          }
-          hydrated = true;
+          setConversationId(conversation.id);
+          const display = toDisplayMessages(conversation);
+          setMessages(display);
+          const latest = latestAnsweredMessageId(display);
+          if (latest !== null) setSelection({ messageId: latest, index: 0 });
+          setIsInitializing(false);
+          return;
         } catch {
-          // Stale/unknown id (e.g. DB reset) -- fall through to start fresh.
+          // Stale/unknown id (e.g. a reset database) -- fall through and start fresh.
         }
       }
 
-      if (!hydrated) {
-        try {
-          const conversation = await createConversation();
-          if (!cancelled) {
-            setConversationId(conversation.id);
-            storeConversationId(conversation.id);
-          }
-        } catch {
-          if (!cancelled) {
-            setInitError("Could not reach the assistant. Please refresh to try again.");
-          }
-        }
+      try {
+        const conversation = await createConversation();
+        setConversationId(conversation.id);
+        storeConversationId(conversation.id);
+      } catch {
+        setInitError("Could not reach the assistant. Please refresh to try again.");
       }
-
-      if (!cancelled) setIsInitializing(false);
+      setIsInitializing(false);
     }
 
     init();
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   // Keep the newest turn in view as it arrives.
