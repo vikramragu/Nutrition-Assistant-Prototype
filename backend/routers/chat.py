@@ -53,7 +53,12 @@ from services.conversation import (
     to_conversation_read,
 )
 from services.corpus_catalog import NOT_IN_CORPUS_MESSAGE, document_refs
-from services.model_client import GroqModelClient, ModelClient, ModelResponseError
+from services.model_client import (
+    GroqModelClient,
+    ModelClient,
+    ModelResponseError,
+    ModelUnavailableError,
+)
 from services.retriever import RETRIEVAL_FLOOR, RETRIEVAL_K, ScoredChunk, apply_floor, search
 from services.scope_guard import REFUSAL_MESSAGES, check_document_answer, check_request
 
@@ -182,6 +187,18 @@ def chat(
         )
         raise HTTPException(
             status_code=502, detail="Model response failed schema validation"
+        ) from exc
+    except ModelUnavailableError as exc:
+        # 503, not 502: the model did not answer at all, which is transient and worth
+        # retrying -- as opposed to answering badly, which is not. Nothing is persisted,
+        # so a retry starts clean.
+        logger.warning(
+            "model_unavailable",
+            extra={"failure_type": "model_unavailable", "description": str(exc)},
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="The language model is busy right now. Please try again in a moment.",
         ) from exc
 
     # Gate 2: every document read its own passages and said they do not answer this. The

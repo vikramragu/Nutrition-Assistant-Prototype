@@ -24,7 +24,7 @@ from db.session import SessionLocal
 from main import app
 from routers.chat import get_model_client, get_searcher
 from services.citation_validator import CitationError
-from services.model_client import ModelResponseError
+from services.model_client import ModelResponseError, ModelUnavailableError
 from services.retriever import DEFAULT_FLOOR, ScoredChunk
 
 # Comfortably above and below the calibrated floor of 0.69, so these tests do not move
@@ -725,3 +725,70 @@ def test_history_reloads_as_grouped_cited_blocks(client, conversation_id, two_do
 
 def test_get_conversation_404_for_unknown_conversation(client):
     assert client.get(f"/conversations/{uuid.uuid4()}").status_code == 404
+
+
+# --- Provider availability (Phase 2.10) ---
+
+
+def test_provider_rate_limit_is_503_not_500(client, conversation_id, two_documents):
+    """A Groq rate limit used to escape as an unhandled exception and an opaque HTTP 500.
+
+    Found by the Phase 2.10 failure-log run against production, which hit the free-tier
+    limit on its second question. The eval harnesses had grown backoff for exactly this in
+    Phase 2.8; the application had not, so the one path a real user takes was the only one
+    left unprotected.
+
+    503 rather than 502 because the distinction is the whole point: 502 means the model
+    answered badly, 503 means it did not answer at all and the user should retry.
+    """
+    chunk, document = two_documents[0]
+    app.dependency_overrides[get_searcher] = lambda: _SpySearcher(
+        [_scored(chunk, document, ABOVE_FLOOR)]
+    )
+    app.dependency_overrides[get_model_client] = lambda: _FakeModelClient(
+        error=ModelUnavailableError("RateLimitError: 429")
+    )
+
+    response = _post(client, conversation_id, "What does the guidance say?")
+
+    assert response.status_code == 503
+    assert "try again" in response.json()["detail"].lower()
+
+
+def test_provider_outage_persists_nothing(client, conversation_id, two_documents, db):
+    """A transient provider failure must leave the conversation exactly as it was, so a
+    retry starts clean rather than replaying a half-written turn."""
+    chunk, document = two_documents[0]
+    app.dependency_overrides[get_searcher] = lambda: _SpySearcher(
+        [_scored(chunk, document, ABOVE_FLOOR)]
+    )
+    app.dependency_overrides[get_model_client] = lambda: _FakeModelClient(
+        error=ModelUnavailableError("APITimeoutError")
+    )
+
+    _post(client, conversation_id, "What does the guidance say?")
+
+    assert db.scalars(select(Message).where(Message.conversation_id == conversation_id)).all() == []
+
+
+def test_unavailable_and_malformed_are_different_statuses(
+    client, conversation_id, two_documents
+):
+    """Same endpoint, two provider problems, two statuses - so an operator can tell
+    "the model is busy" from "the model broke the contract" without reading a log."""
+    chunk, document = two_documents[0]
+    app.dependency_overrides[get_searcher] = lambda: _SpySearcher(
+        [_scored(chunk, document, ABOVE_FLOOR)]
+    )
+
+    app.dependency_overrides[get_model_client] = lambda: _FakeModelClient(
+        error=ModelUnavailableError("RateLimitError")
+    )
+    unavailable = _post(client, conversation_id, "What does the guidance say?")
+
+    app.dependency_overrides[get_model_client] = lambda: _FakeModelClient(
+        error=ModelResponseError("not conformant")
+    )
+    malformed = _post(client, conversation_id, "What does the guidance say?")
+
+    assert (unavailable.status_code, malformed.status_code) == (503, 502)

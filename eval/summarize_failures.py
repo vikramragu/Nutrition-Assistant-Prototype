@@ -21,13 +21,7 @@ from db.models import EvalFinding, EvalRun  # noqa: E402
 from db.session import SessionLocal  # noqa: E402
 from sqlalchemy import select  # noqa: E402
 
-FAILURE_TYPES = [
-    "unsupported_claim",
-    "inconsistent_number",
-    "unverifiable_source",
-    "missed_scope_restriction",
-    "unhelpful_hedging",
-]
+from failure_types import FAILURE_TYPES  # noqa: E402  -- nine types as of Phase 2.10
 
 
 def main() -> None:

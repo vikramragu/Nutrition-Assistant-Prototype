@@ -23,13 +23,7 @@ sys.path.insert(0, str(BACKEND_ROOT))
 from db.models import EvalFinding  # noqa: E402
 from db.session import SessionLocal  # noqa: E402
 
-VALID_TYPES = {
-    "unsupported_claim",
-    "inconsistent_number",
-    "unverifiable_source",
-    "missed_scope_restriction",
-    "unhelpful_hedging",
-}
+from failure_types import VALID_TYPES  # noqa: E402  -- nine types as of Phase 2.10
 
 
 def main() -> None:

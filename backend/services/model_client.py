@@ -3,7 +3,13 @@ import os
 from typing import Literal, Protocol, TypedDict
 
 from dotenv import load_dotenv
-from groq import Groq
+from groq import (
+    APIConnectionError,
+    APIStatusError,
+    APITimeoutError,
+    Groq,
+    RateLimitError,
+)
 from pydantic import ValidationError
 
 from db.schemas import DocumentAnswer, NutritionAnswer
@@ -137,6 +143,21 @@ class ModelResponseError(Exception):
     """
 
 
+class ModelUnavailableError(Exception):
+    """The provider could not be reached, or refused the call for capacity reasons.
+
+    Categorically different from `ModelResponseError`, and the distinction is the whole
+    point: that one means *the model answered badly* and is a 502; this means *the model
+    did not answer at all* and is a 503, which is a transient condition the user should
+    retry rather than a defect in the response.
+
+    Added in Phase 2.10, after the failure-log run against production turned a Groq
+    free-tier rate limit into an unhandled exception and an opaque HTTP 500. The eval
+    harnesses had already grown backoff for exactly this in Phase 2.8 -- the application
+    had not, so the one path a real user takes was the one left unprotected.
+    """
+
+
 class ModelClient(Protocol):
     def get_structured_answer(
         self, system_prompt: str, history: list[ChatMessage], user_message: str
@@ -219,12 +240,22 @@ class GroqModelClient:
         messages.extend({"role": m["role"], "content": m["content"]} for m in history)
         messages.append({"role": "user", "content": user_message})
 
-        response = self._client.chat.completions.create(
-            model=MODEL_ID,
-            max_completion_tokens=MAX_COMPLETION_TOKENS,
-            messages=messages,
-            response_format=response_format,
-        )
+        try:
+            response = self._client.chat.completions.create(
+                model=MODEL_ID,
+                max_completion_tokens=MAX_COMPLETION_TOKENS,
+                messages=messages,
+                response_format=response_format,
+            )
+        except (RateLimitError, APITimeoutError, APIConnectionError) as exc:
+            raise ModelUnavailableError(f"{type(exc).__name__}: {exc}") from exc
+        except APIStatusError as exc:
+            # 5xx from the provider is availability; 4xx other than 429 means we sent
+            # something it rejected, which is ours to fix and should not be dressed up as
+            # a transient outage.
+            if exc.status_code >= 500:
+                raise ModelUnavailableError(f"provider {exc.status_code}: {exc}") from exc
+            raise
 
         choice = response.choices[0]
         content = choice.message.content
