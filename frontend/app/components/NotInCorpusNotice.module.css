@@ -1,15 +1,16 @@
 /* Coverage refusal — "the corpus does not".
  *
- * Sage/secondary, DASHED border, a book icon. RefusalNotice is terracotta, SOLID, with a
- * shield. Informational rather than a warning, because a coverage gap is a fact about the
- * documents, not a line the reader tried to cross. The dashed border carries the
- * distinction into greyscale, where the two hues would collapse into the same grey. */
+ * AMBER, DASHED border, book icon. RefusalNotice is RED and SOLID with a shield.
+ *
+ * Amber rather than red because this is a *can't*, not a *won't* — a gap in the documents,
+ * not a line the reader tried to cross. The dashed border carries that distinction into
+ * greyscale, where amber and red collapse into much the same grey. */
 .notice {
   padding: 16px 18px;
   border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--secondary-container) 40%, var(--card));
-  border: 1px dashed var(--secondary);
-  color: var(--text);
+  background: var(--caution-container);
+  border: 1px dashed color-mix(in srgb, var(--caution) 65%, transparent);
+  color: var(--on-caution-container);
 }
 
 .head {
@@ -26,8 +27,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--secondary) 16%, transparent);
-  color: var(--secondary);
+  background: color-mix(in srgb, var(--caution) 16%, transparent);
+  color: var(--caution);
 }
 
 .headBody {
@@ -44,14 +45,14 @@
   line-height: 20px;
   font-weight: 600;
   letter-spacing: 0.01em;
-  color: var(--text);
+  color: var(--on-caution-container);
 }
 
 .badge {
   padding: 2px 8px;
   border-radius: var(--radius-xl);
-  background: color-mix(in srgb, var(--secondary) 20%, transparent);
-  color: var(--on-secondary-container);
+  background: color-mix(in srgb, var(--caution) 20%, transparent);
+  color: var(--on-caution-container);
   /* label-sm */
   font-size: 10px;
   line-height: 14px;
@@ -86,7 +87,7 @@
 }
 
 .summary:hover {
-  color: var(--secondary);
+  color: var(--caution);
 }
 
 .list {
@@ -120,7 +121,7 @@
 }
 
 .docLink:hover {
-  color: var(--secondary);
+  color: var(--caution);
   text-decoration: underline;
 }
 

@@ -235,7 +235,13 @@
   font-style: italic;
 }
 
-/* --- Transport error: the fourth state --- */
+/* --- Transport error: the fourth state ---
+ *
+ * Now that the policy refusal is red, this cannot be a red-filled box too. It is told
+ * apart by *treatment* rather than hue: a neutral card with a red stripe down the left
+ * edge, not a red card. That also matches what it is — the assistant did not decide
+ * anything here, something broke — so it should read as a system notice rather than as a
+ * decision, and sit quieter than either refusal. */
 
 .errorCard {
   display: flex;
@@ -243,9 +249,11 @@
   gap: 12px;
   padding: 16px 18px;
   border-radius: var(--radius-lg);
-  background: var(--error-container);
-  border: 1px solid var(--error);
-  color: var(--on-error-container);
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--error);
+  box-shadow: var(--shadow-1);
+  color: var(--text);
 }
 
 .errorIcon {
@@ -258,12 +266,14 @@
   font-size: 14px;
   line-height: 20px;
   font-weight: 600;
+  color: var(--error);
 }
 
 .errorBody {
   font-size: 13px;
   line-height: 20px;
   margin-top: 2px;
+  color: var(--text-muted);
 }
 
 @media (max-width: 639px) {

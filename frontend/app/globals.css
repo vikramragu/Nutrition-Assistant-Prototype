@@ -41,15 +41,17 @@
   --secondary-container: #bee8dc;
   --on-secondary-container: #2b4f46;
 
-  /* Policy refusal — "the assistant will not". DESIGN.md's Safety Precaution tokens. */
-  --caution: #c05621;
-  --caution-container: #feebc8;
-  --on-caution-container: #7c2d12;
+  /* Coverage refusal — "the corpus does not". Amber: DESIGN.md's General Consensus /
+     Unverified tokens. Amber reads as "can't", which is what a coverage gap is. */
+  --caution: #b45309;
+  --caution-container: #fef3c7;
+  --on-caution-container: #78350f;
 
-  /* Error — transport/server failure, distinct from either refusal. */
+  /* Policy refusal — "the assistant will not" — and transport errors. Red reads as a
+     boundary. The two are told apart by treatment, not hue: see the notice stylesheets. */
   --error: #ba1a1a;
-  --error-container: #ffdad6;
-  --on-error-container: #93000a;
+  --error-container: #fdeceb;
+  --on-error-container: #8c1d18;
 
   --shadow-1: 0 1px 3px 0 rgb(27 67 50 / 0.04), 0 1px 2px -1px rgb(27 67 50 / 0.04);
   --shadow-2: 0 12px 32px -8px rgb(20 45 34 / 0.12);
@@ -94,13 +96,13 @@
     --secondary-container: #274e45;
     --on-secondary-container: #c1ebdf;
 
-    --caution: #f0a46a;
-    --caution-container: #3a2415;
-    --on-caution-container: #fcd9b6;
+    --caution: #e9b949;
+    --caution-container: #39300f;
+    --on-caution-container: #fae3a0;
 
-    --error: #ffb4ab;
-    --error-container: #3a1512;
-    --on-error-container: #ffdad6;
+    --error: #f2928a;
+    --error-container: #3a1a18;
+    --on-error-container: #ffd7d3;
 
     --shadow-1: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
     --shadow-2: 0 12px 32px -8px rgb(0 0 0 / 0.45);
@@ -134,13 +136,13 @@
   --secondary-container: #274e45;
   --on-secondary-container: #c1ebdf;
 
-  --caution: #f0a46a;
-  --caution-container: #3a2415;
-  --on-caution-container: #fcd9b6;
+  --caution: #e9b949;
+  --caution-container: #39300f;
+  --on-caution-container: #fae3a0;
 
-  --error: #ffb4ab;
-  --error-container: #3a1512;
-  --on-error-container: #ffdad6;
+  --error: #f2928a;
+  --error-container: #3a1a18;
+  --on-error-container: #ffd7d3;
 
   --shadow-1: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
   --shadow-2: 0 12px 32px -8px rgb(0 0 0 / 0.45);

@@ -1,19 +1,24 @@
 /* Policy refusal — "the assistant will not".
  *
- * Terracotta (DESIGN.md's Safety Precaution token), SOLID border, a shield icon and an
- * "Outside scope" badge. NotInCorpusNotice is sage, DASHED, with a book icon. The two
- * differ by colour *and* border style *and* icon *and* wording, so the distinction
- * survives a greyscale screenshot and a red-green colour deficiency — the brief requires
- * a user to tell them apart, and hue alone would not do it. */
+ * RED, SOLID border, shield icon, "Outside scope" badge. Red because this is a boundary
+ * the assistant is holding, and red is the one colour everybody already reads that way.
+ *
+ * NotInCorpusNotice is AMBER and DASHED with a book icon. The two differ by colour *and*
+ * border style *and* icon *and* wording, so the distinction survives a greyscale
+ * screenshot and a red-green colour deficiency — the brief requires a user to tell them
+ * apart, and hue alone would not do it.
+ *
+ * The border is mixed rather than full-strength `--error`: a 1px line of pure #ba1a1a
+ * around a pale fill reads as an alarm, and this is a polite decline, not a crash. */
 .notice {
   display: flex;
   align-items: flex-start;
   gap: 12px;
   padding: 16px 18px;
   border-radius: var(--radius-lg);
-  background: var(--caution-container);
-  border: 1px solid var(--caution);
-  color: var(--on-caution-container);
+  background: var(--error-container);
+  border: 1px solid color-mix(in srgb, var(--error) 55%, transparent);
+  color: var(--on-error-container);
 }
 
 .icon {
@@ -24,8 +29,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--caution) 18%, transparent);
-  color: var(--caution);
+  background: color-mix(in srgb, var(--error) 16%, transparent);
+  color: var(--error);
 }
 
 .body {
@@ -47,7 +52,7 @@
 .badge {
   padding: 2px 8px;
   border-radius: var(--radius-xl);
-  background: color-mix(in srgb, var(--caution) 20%, transparent);
+  background: color-mix(in srgb, var(--error) 18%, transparent);
   /* label-sm */
   font-size: 10px;
   line-height: 14px;
