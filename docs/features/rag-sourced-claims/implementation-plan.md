@@ -373,15 +373,37 @@ cites as evidence — could never be committed, making the 2.8 comparison unrepr
 - **README** — chunk size, overlap, embedding model, index type (`none — exact scan`) and `k`, plus
   the chunking strategy and its cost, plus the §8.1 schema change and why.
 
-**Exit criteria**
-- [ ] All 10 questions run against the deployed pipeline.
-- [ ] Every response reviewed against all nine failure types.
-- [ ] Findings grouped and counted in `failure-log.md`.
-- [ ] README states all five required parameters, the chunking cost, and the schema change.
-- [ ] Each finding resolves to a rule change, a prompt edit re-validated through 2.8, or a documented
-      accepted limitation — never silently dropped.
-- [ ] Compare against [../../failure-log.md](../../failure-log.md): did retrieval actually fix the
-      three `inconsistent_number` and `unsupported_claim` findings it was supposed to fix?
+**Exit criteria** — all met, evidence in [failure-log.md](./failure-log.md)
+- [x] All 10 questions run against the deployed pipeline — 16 runs including the reruns on the
+      numeric three, against the Railway URL.
+- [x] Every response reviewed against all nine failure types — including the six that scored zero,
+      which is only meaningful because they were looked for: all 21 claims were put through the
+      overlap and quantity detectors and then read against their quotes by hand.
+- [x] Findings grouped and counted in `failure-log.md` — **3 findings, down from Phase 1's 7**;
+      also recorded as `eval_findings` rows and printed by the existing `summarize_failures.py`,
+      which needed no change beyond the shared nine-type taxonomy.
+- [x] README states all five required parameters, the chunking cost, and the schema change — §6.
+- [x] Each finding resolves to something: 2 × `uncited_claim` → a prompt edit deferred to a
+      re-validated 2.8 cycle; 1 × `over_refusal` → a documented accepted limitation, because the
+      obvious fix (nudge the floor down by 0.005) trades a measured value for an anecdote.
+- [x] Compare against [../../failure-log.md](../../failure-log.md) — **yes for
+      `inconsistent_number`, structurally**: Phase 2 copies numbers out of passages instead of
+      generating them, so q1's drifting range and q3's wrong litres-to-cups conversion are both
+      gone with nothing left to vary. **No for `unsupported_claim`**: those two questions now
+      return not-in-corpus, so the failures are gone because the questions are no longer answered
+      — an improvement in a narrow sense and a loss in a broader one. `unverifiable_source` scores
+      0, but **the type inverted** and the two counts are not comparable as numbers.
+
+**Eight of ten questions got a refusal**, and five of those eight came from **gate 2** — the model
+reading passages that cleared the floor and declining. q6 ("safest internal temperature for
+chicken") retrieved FSANZ at 0.734 and was refused; had the floor alone decided, it would have
+produced a confident, correctly cited, **wrong cooking temperature**.
+
+**A production defect found by running it:** a Groq free-tier rate limit escaped `routers/chat.py`
+as an unhandled exception and an opaque HTTP 500, killing the first attempt at this run. Phase 2.8
+had fixed this exact class of bug in the *eval harnesses* — the application never got the same
+treatment, so the one path a real user takes was the only one left unprotected. Now
+`ModelUnavailableError` → **503**, distinct from the 502 that means the model answered badly.
 
 ---
 

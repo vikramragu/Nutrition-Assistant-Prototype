@@ -1,0 +1,387 @@
+{
+  "timestamp": "20261008T162657Z",
+  "pipeline": "rag",
+  "api": "https://nutrition-assistant-prototype-production.up.railway.app",
+  "prompt_version": "f2a1adf9f1e4",
+  "corpus_documents": 7,
+  "corpus_chunks": 103,
+  "retrieval_k": 8,
+  "retrieval_floor": 0.69,
+  "results": [
+    {
+      "id": 1,
+      "category": "nutrient_requirements",
+      "question": "How much protein do I need per day?",
+      "run_index": 0,
+      "conversation_id": "8c8ad07c-c629-431d-b604-ddb2da633634",
+      "outcome": "answer",
+      "document_count": 2,
+      "document_answers": [
+        {
+          "document": "Healthy diet",
+          "publisher": "World Health Organization",
+          "year": 2026,
+          "answer": "According to the WHO, protein intake of 10\u201315% of total daily energy is generally sufficient for adults, which equals roughly 50\u201375\u202fg per day for someone consuming about 2000\u202fkcal. Higher intake\u2014above 15% of energy\u2014may be appropriate for adolescents and for athletes, body builders, or others actively building or maintaining significant muscle mass. However, consuming excessive protein can place a metabolic burden on the body, particularly on the kidneys.",
+          "claims": [
+            {
+              "claim": "Protein intake of 10\u201315% of total daily energy intake is generally sufficient to meet the needs of adults.",
+              "section": "Protein",
+              "page_from": 0,
+              "quote": "Proteins provide the building blocks for many of the structural elements of the body, such as muscle, as well as functional molecules such as hormones and enzymes. Protein intake at 10\u201315% of total daily energy intake is generally sufficient to meet the needs of adults (approximately 50\u201375 grams for a person of healthy body weight consuming about 2000 calories per day). \u2022 Protein intake may be greater than 15% of total daily energy intake during adolescence, and for athletes, body builders and others actively building and/or maintaining significant amounts of muscle mass. Consuming excessive amounts of protein, however, can place a metabolic burden on the body, particularly the kidneys. \u2022 Protein can come from a mix of animal and plant sources. Protein digestibility and quality should also be considered, particularly in childhood and adolescence. In some contexts, switching to more plant-based sources of protein may be preferable to decrease risk of diet-related noncommunicable diseases in adults. In other contexts, consumption of animal source foods is still important to favour nutrient intakes, particularly in children and pregnant/lactating women.",
+              "cites_own_document": true
+            },
+            {
+              "claim": "For a person of healthy body weight consuming about 2000 calories per day, this corresponds to approximately 50\u201375 grams of protein per day.",
+              "section": "Protein",
+              "page_from": 0,
+              "quote": "Proteins provide the building blocks for many of the structural elements of the body, such as muscle, as well as functional molecules such as hormones and enzymes. Protein intake at 10\u201315% of total daily energy intake is generally sufficient to meet the needs of adults (approximately 50\u201375 grams for a person of healthy body weight consuming about 2000 calories per day). \u2022 Protein intake may be greater than 15% of total daily energy intake during adolescence, and for athletes, body builders and others actively building and/or maintaining significant amounts of muscle mass. Consuming excessive amounts of protein, however, can place a metabolic burden on the body, particularly the kidneys. \u2022 Protein can come from a mix of animal and plant sources. Protein digestibility and quality should also be considered, particularly in childhood and adolescence. In some contexts, switching to more plant-based sources of protein may be preferable to decrease risk of diet-related noncommunicable diseases in adults. In other contexts, consumption of animal source foods is still important to favour nutrient intakes, particularly in children and pregnant/lactating women.",
+              "cites_own_document": true
+            },
+            {
+              "claim": "Protein intake may be greater than 15% of total daily energy intake during adolescence, and for athletes, body builders and others actively building and/or maintaining significant amounts of muscle mass.",
+              "section": "Protein",
+              "page_from": 0,
+              "quote": "Proteins provide the building blocks for many of the structural elements of the body, such as muscle, as well as functional molecules such as hormones and enzymes. Protein intake at 10\u201315% of total daily energy intake is generally sufficient to meet the needs of adults (approximately 50\u201375 grams for a person of healthy body weight consuming about 2000 calories per day). \u2022 Protein intake may be greater than 15% of total daily energy intake during adolescence, and for athletes, body builders and others actively building and/or maintaining significant amounts of muscle mass. Consuming excessive amounts of protein, however, can place a metabolic burden on the body, particularly the kidneys. \u2022 Protein can come from a mix of animal and plant sources. Protein digestibility and quality should also be considered, particularly in childhood and adolescence. In some contexts, switching to more plant-based sources of protein may be preferable to decrease risk of diet-related noncommunicable diseases in adults. In other contexts, consumption of animal source foods is still important to favour nutrient intakes, particularly in children and pregnant/lactating women.",
+              "cites_own_document": true
+            },
+            {
+              "claim": "Consuming excessive amounts of protein can place a metabolic burden on the body, particularly the kidneys.",
+              "section": "Protein",
+              "page_from": 0,
+              "quote": "Proteins provide the building blocks for many of the structural elements of the body, such as muscle, as well as functional molecules such as hormones and enzymes. Protein intake at 10\u201315% of total daily energy intake is generally sufficient to meet the needs of adults (approximately 50\u201375 grams for a person of healthy body weight consuming about 2000 calories per day). \u2022 Protein intake may be greater than 15% of total daily energy intake during adolescence, and for athletes, body builders and others actively building and/or maintaining significant amounts of muscle mass. Consuming excessive amounts of protein, however, can place a metabolic burden on the body, particularly the kidneys. \u2022 Protein can come from a mix of animal and plant sources. Protein digestibility and quality should also be considered, particularly in childhood and adolescence. In some contexts, switching to more plant-based sources of protein may be preferable to decrease risk of diet-related noncommunicable diseases in adults. In other contexts, consumption of animal source foods is still important to favour nutrient intakes, particularly in children and pregnant/lactating women.",
+              "cites_own_document": true
+            }
+          ]
+        },
+        {
+          "document": "Dietary Guidelines for Americans, 2025\u20132030",
+          "publisher": "USDA & HHS (United States)",
+          "year": 2025,
+          "answer": "The Dietary Guidelines recommend consuming 1.2 to 1.6\u202fg of protein per kilogram of body weight each day, with adjustments made according to your individual caloric needs. This recommendation is part of a broader emphasis on prioritizing high\u2011quality protein foods.",
+          "claims": [
+            {
+              "claim": "The document recommends protein serving goals of 1.2\u20131.6 grams of protein per kilogram of body weight per day.",
+              "section": "Prioritize Protein Foods at Every Meal",
+              "page_from": 3,
+              "quote": "+ Prioritize high-quality, nutrient-dense protein foods as part of a healthy dietary pattern. + Consume a variety of protein foods from animal sources, including eggs, poultry, seafood, and red meat, as well as a variety of plant-sourced protein foods, including beans, peas, lentils, legumes, nuts, seeds, and soy. + Swap deep-fried cooking methods with baked, broiled, roasted, stir-fried, or grilled cooking methods. + Consume meat with no or limited added sugars, refined carbohydrates or starches, or chemical additives. If preferred, flavor with salt, spices, and herbs. + Protein serving goals: 1.2\u20131.6 grams of protein per kilogram of body weight per day, adjusting as needed based on your individual caloric requirements.",
+              "cites_own_document": true
+            },
+            {
+              "claim": "Protein intake should be adjusted based on individual caloric requirements.",
+              "section": "Prioritize Protein Foods at Every Meal",
+              "page_from": 3,
+              "quote": "+ Prioritize high-quality, nutrient-dense protein foods as part of a healthy dietary pattern. + Consume a variety of protein foods from animal sources, including eggs, poultry, seafood, and red meat, as well as a variety of plant-sourced protein foods, including beans, peas, lentils, legumes, nuts, seeds, and soy. + Swap deep-fried cooking methods with baked, broiled, roasted, stir-fried, or grilled cooking methods. + Consume meat with no or limited added sugars, refined carbohydrates or starches, or chemical additives. If preferred, flavor with salt, spices, and herbs. + Protein serving goals: 1.2\u20131.6 grams of protein per kilogram of body weight per day, adjusting as needed based on your individual caloric requirements.",
+              "cites_own_document": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "category": "nutrient_requirements",
+      "question": "How much protein do I need per day?",
+      "run_index": 1,
+      "conversation_id": "6de1820c-8d17-414b-9b8b-58e2505a0f3b",
+      "outcome": "answer",
+      "document_count": 2,
+      "document_answers": [
+        {
+          "document": "Healthy diet",
+          "publisher": "World Health Organization",
+          "year": 2026,
+          "answer": "The WHO guideline states that for adults, protein should provide 10\u201315% of total daily energy, which is roughly 50\u201375\u202fg per day for someone consuming about 2,000\u202fkcal. Higher intakes may be appropriate for adolescents, athletes, or others actively building or maintaining substantial muscle mass.",
+          "claims": [
+            {
+              "claim": "Protein intake at 10\u201315% of total daily energy intake is generally sufficient to meet the needs of adults.",
+              "section": "Protein",
+              "page_from": 0,
+              "quote": "Proteins provide the building blocks for many of the structural elements of the body, such as muscle, as well as functional molecules such as hormones and enzymes. Protein intake at 10\u201315% of total daily energy intake is generally sufficient to meet the needs of adults (approximately 50\u201375 grams for a person of healthy body weight consuming about 2000 calories per day). \u2022 Protein intake may be greater than 15% of total daily energy intake during adolescence, and for athletes, body builders and others actively building and/or maintaining significant amounts of muscle mass. Consuming excessive amounts of protein, however, can place a metabolic burden on the body, particularly the kidneys. \u2022 Protein can come from a mix of animal and plant sources. Protein digestibility and quality should also be considered, particularly in childhood and adolescence. In some contexts, switching to more plant-based sources of protein may be preferable to decrease risk of diet-related noncommunicable diseases in adults. In other contexts, consumption of animal source foods is still important to favour nutrient intakes, particularly in children and pregnant/lactating women.",
+              "cites_own_document": true
+            },
+            {
+              "claim": "This corresponds to approximately 50\u201375 grams for a person of healthy body weight consuming about 2000 calories per day.",
+              "section": "Protein",
+              "page_from": 0,
+              "quote": "Proteins provide the building blocks for many of the structural elements of the body, such as muscle, as well as functional molecules such as hormones and enzymes. Protein intake at 10\u201315% of total daily energy intake is generally sufficient to meet the needs of adults (approximately 50\u201375 grams for a person of healthy body weight consuming about 2000 calories per day). \u2022 Protein intake may be greater than 15% of total daily energy intake during adolescence, and for athletes, body builders and others actively building and/or maintaining significant amounts of muscle mass. Consuming excessive amounts of protein, however, can place a metabolic burden on the body, particularly the kidneys. \u2022 Protein can come from a mix of animal and plant sources. Protein digestibility and quality should also be considered, particularly in childhood and adolescence. In some contexts, switching to more plant-based sources of protein may be preferable to decrease risk of diet-related noncommunicable diseases in adults. In other contexts, consumption of animal source foods is still important to favour nutrient intakes, particularly in children and pregnant/lactating women.",
+              "cites_own_document": true
+            },
+            {
+              "claim": "Protein intake may be greater than 15% of total daily energy intake during adolescence, and for athletes, body builders and others actively building and/or maintaining significant amounts of muscle mass.",
+              "section": "Protein",
+              "page_from": 0,
+              "quote": "Proteins provide the building blocks for many of the structural elements of the body, such as muscle, as well as functional molecules such as hormones and enzymes. Protein intake at 10\u201315% of total daily energy intake is generally sufficient to meet the needs of adults (approximately 50\u201375 grams for a person of healthy body weight consuming about 2000 calories per day). \u2022 Protein intake may be greater than 15% of total daily energy intake during adolescence, and for athletes, body builders and others actively building and/or maintaining significant amounts of muscle mass. Consuming excessive amounts of protein, however, can place a metabolic burden on the body, particularly the kidneys. \u2022 Protein can come from a mix of animal and plant sources. Protein digestibility and quality should also be considered, particularly in childhood and adolescence. In some contexts, switching to more plant-based sources of protein may be preferable to decrease risk of diet-related noncommunicable diseases in adults. In other contexts, consumption of animal source foods is still important to favour nutrient intakes, particularly in children and pregnant/lactating women.",
+              "cites_own_document": true
+            }
+          ]
+        },
+        {
+          "document": "Dietary Guidelines for Americans, 2025\u20132030",
+          "publisher": "USDA & HHS (United States)",
+          "year": 2025,
+          "answer": "The Dietary Guidelines for Americans, 2025\u20132030 set protein serving goals of 1.2 to 1.6 grams of protein per kilogram of body weight per day. These amounts should be adjusted as needed based on an individual's caloric requirements.",
+          "claims": [
+            {
+              "claim": "Protein serving goals are 1.2 to 1.6 grams of protein per kilogram of body weight per day.",
+              "section": "Prioritize Protein Foods at Every Meal",
+              "page_from": 3,
+              "quote": "+ Prioritize high-quality, nutrient-dense protein foods as part of a healthy dietary pattern. + Consume a variety of protein foods from animal sources, including eggs, poultry, seafood, and red meat, as well as a variety of plant-sourced protein foods, including beans, peas, lentils, legumes, nuts, seeds, and soy. + Swap deep-fried cooking methods with baked, broiled, roasted, stir-fried, or grilled cooking methods. + Consume meat with no or limited added sugars, refined carbohydrates or starches, or chemical additives. If preferred, flavor with salt, spices, and herbs. + Protein serving goals: 1.2\u20131.6 grams of protein per kilogram of body weight per day, adjusting as needed based on your individual caloric requirements.",
+              "cites_own_document": true
+            },
+            {
+              "claim": "Protein intake should be adjusted as needed based on individual caloric requirements.",
+              "section": "Prioritize Protein Foods at Every Meal",
+              "page_from": 3,
+              "quote": "+ Prioritize high-quality, nutrient-dense protein foods as part of a healthy dietary pattern. + Consume a variety of protein foods from animal sources, including eggs, poultry, seafood, and red meat, as well as a variety of plant-sourced protein foods, including beans, peas, lentils, legumes, nuts, seeds, and soy. + Swap deep-fried cooking methods with baked, broiled, roasted, stir-fried, or grilled cooking methods. + Consume meat with no or limited added sugars, refined carbohydrates or starches, or chemical additives. If preferred, flavor with salt, spices, and herbs. + Protein serving goals: 1.2\u20131.6 grams of protein per kilogram of body weight per day, adjusting as needed based on your individual caloric requirements.",
+              "cites_own_document": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "category": "nutrient_requirements",
+      "question": "How much protein do I need per day?",
+      "run_index": 2,
+      "conversation_id": "05075dd8-2eac-4ec4-a1e9-dc5843547a6b",
+      "outcome": "answer",
+      "document_count": 2,
+      "document_answers": [
+        {
+          "document": "Healthy diet",
+          "publisher": "World Health Organization",
+          "year": 2026,
+          "answer": "The WHO states that protein intake of 10\u201315% of total daily energy is generally sufficient for adults, which corresponds to roughly 50\u201375\u202fg per day for a healthy adult consuming about 2,000 calories. This range reflects the needs of a typical adult and may be higher for adolescents, athletes, or those building significant muscle mass.",
+          "claims": [
+            {
+              "claim": "Protein intake at 10\u201315% of total daily energy intake is generally sufficient to meet the needs of adults.",
+              "section": "Protein",
+              "page_from": 0,
+              "quote": "Proteins provide the building blocks for many of the structural elements of the body, such as muscle, as well as functional molecules such as hormones and enzymes. Protein intake at 10\u201315% of total daily energy intake is generally sufficient to meet the needs of adults (approximately 50\u201375 grams for a person of healthy body weight consuming about 2000 calories per day). \u2022 Protein intake may be greater than 15% of total daily energy intake during adolescence, and for athletes, body builders and others actively building and/or maintaining significant amounts of muscle mass. Consuming excessive amounts of protein, however, can place a metabolic burden on the body, particularly the kidneys. \u2022 Protein can come from a mix of animal and plant sources. Protein digestibility and quality should also be considered, particularly in childhood and adolescence. In some contexts, switching to more plant-based sources of protein may be preferable to decrease risk of diet-related noncommunicable diseases in adults. In other contexts, consumption of animal source foods is still important to favour nutrient intakes, particularly in children and pregnant/lactating women.",
+              "cites_own_document": true
+            },
+            {
+              "claim": "This corresponds to approximately 50\u201375 grams per day for a person of healthy body weight consuming about 2000 calories per day.",
+              "section": "Protein",
+              "page_from": 0,
+              "quote": "Proteins provide the building blocks for many of the structural elements of the body, such as muscle, as well as functional molecules such as hormones and enzymes. Protein intake at 10\u201315% of total daily energy intake is generally sufficient to meet the needs of adults (approximately 50\u201375 grams for a person of healthy body weight consuming about 2000 calories per day). \u2022 Protein intake may be greater than 15% of total daily energy intake during adolescence, and for athletes, body builders and others actively building and/or maintaining significant amounts of muscle mass. Consuming excessive amounts of protein, however, can place a metabolic burden on the body, particularly the kidneys. \u2022 Protein can come from a mix of animal and plant sources. Protein digestibility and quality should also be considered, particularly in childhood and adolescence. In some contexts, switching to more plant-based sources of protein may be preferable to decrease risk of diet-related noncommunicable diseases in adults. In other contexts, consumption of animal source foods is still important to favour nutrient intakes, particularly in children and pregnant/lactating women.",
+              "cites_own_document": true
+            }
+          ]
+        },
+        {
+          "document": "Dietary Guidelines for Americans, 2025\u20132030",
+          "publisher": "USDA & HHS (United States)",
+          "year": 2025,
+          "answer": "The Dietary Guidelines for Americans, 2025\u20132030 specify protein serving goals of 1.2 to 1.6 grams of protein per kilogram of body weight per day. These recommendations should be adjusted as needed based on an individual's caloric requirements.",
+          "claims": [
+            {
+              "claim": "The document recommends 1.2\u20131.6 grams of protein per kilogram of body weight per day, adjusting as needed based on individual caloric requirements.",
+              "section": "Prioritize Protein Foods at Every Meal",
+              "page_from": 3,
+              "quote": "+ Prioritize high-quality, nutrient-dense protein foods as part of a healthy dietary pattern. + Consume a variety of protein foods from animal sources, including eggs, poultry, seafood, and red meat, as well as a variety of plant-sourced protein foods, including beans, peas, lentils, legumes, nuts, seeds, and soy. + Swap deep-fried cooking methods with baked, broiled, roasted, stir-fried, or grilled cooking methods. + Consume meat with no or limited added sugars, refined carbohydrates or starches, or chemical additives. If preferred, flavor with salt, spices, and herbs. + Protein serving goals: 1.2\u20131.6 grams of protein per kilogram of body weight per day, adjusting as needed based on your individual caloric requirements.",
+              "cites_own_document": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "category": "nutrient_requirements",
+      "question": "What's the recommended daily intake of vitamin D?",
+      "run_index": 0,
+      "conversation_id": "001c31f0-b961-4672-bc63-50908a5f76f3",
+      "outcome": "not_in_corpus",
+      "searched": 7
+    },
+    {
+      "id": 2,
+      "category": "nutrient_requirements",
+      "question": "What's the recommended daily intake of vitamin D?",
+      "run_index": 1,
+      "conversation_id": "2b09059c-5b01-4864-95c0-f6d17cb4744e",
+      "outcome": "not_in_corpus",
+      "searched": 7
+    },
+    {
+      "id": 2,
+      "category": "nutrient_requirements",
+      "question": "What's the recommended daily intake of vitamin D?",
+      "run_index": 2,
+      "conversation_id": "c16ab7bf-527d-488a-b22d-403111bfa766",
+      "outcome": "not_in_corpus",
+      "searched": 7
+    },
+    {
+      "id": 3,
+      "category": "nutrient_requirements",
+      "question": "How much water should I drink each day?",
+      "run_index": 0,
+      "conversation_id": "4e09d97e-f9f9-48da-887b-c7f8e7ca7dcb",
+      "outcome": "answer",
+      "document_count": 1,
+      "document_answers": [
+        {
+          "document": "Your guide to healthy eating: use the Food Pyramid",
+          "publisher": "Department of Health (Ireland)",
+          "year": 2016,
+          "answer": "The guide advises drinking at least 8 cups of fluid each day. It further notes that water is the best choice for meeting this recommendation.",
+          "claims": [
+            {
+              "claim": "Drink at least 8 cups of fluid a day.",
+              "section": "Fluids",
+              "page_from": 4,
+              "quote": "Drink at least 8 cups of fluid a day \u2013 water is best. Most people consume snacks high in fat, sugar and salt and sugar sweetened drinks up to 6 times a day (Healthy Ireland Survey 2016). There are no recommended servings for Top Shelf foods and drinks because they are not needed for good health.",
+              "cites_own_document": true
+            },
+            {
+              "claim": "Water is the best choice for meeting this recommendation.",
+              "section": "Fluids",
+              "page_from": 4,
+              "quote": "Drink at least 8 cups of fluid a day \u2013 water is best. Most people consume snacks high in fat, sugar and salt and sugar sweetened drinks up to 6 times a day (Healthy Ireland Survey 2016). There are no recommended servings for Top Shelf foods and drinks because they are not needed for good health.",
+              "cites_own_document": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "category": "nutrient_requirements",
+      "question": "How much water should I drink each day?",
+      "run_index": 1,
+      "conversation_id": "64578793-803a-43ed-8871-0df675056ab6",
+      "outcome": "answer",
+      "document_count": 1,
+      "document_answers": [
+        {
+          "document": "Your guide to healthy eating: use the Food Pyramid",
+          "publisher": "Department of Health (Ireland)",
+          "year": 2016,
+          "answer": "The guide advises drinking at least 8 cups of fluid each day, with water being the best choice. This recommendation emphasizes water as the preferred source of fluid.",
+          "claims": [
+            {
+              "claim": "Drink at least 8 cups of fluid a day.",
+              "section": "Fluids",
+              "page_from": 4,
+              "quote": "Drink at least 8 cups of fluid a day \u2013 water is best. Most people consume snacks high in fat, sugar and salt and sugar sweetened drinks up to 6 times a day (Healthy Ireland Survey 2016). There are no recommended servings for Top Shelf foods and drinks because they are not needed for good health.",
+              "cites_own_document": true
+            },
+            {
+              "claim": "Water is the best fluid.",
+              "section": "Fluids",
+              "page_from": 4,
+              "quote": "Drink at least 8 cups of fluid a day \u2013 water is best. Most people consume snacks high in fat, sugar and salt and sugar sweetened drinks up to 6 times a day (Healthy Ireland Survey 2016). There are no recommended servings for Top Shelf foods and drinks because they are not needed for good health.",
+              "cites_own_document": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "category": "nutrient_requirements",
+      "question": "How much water should I drink each day?",
+      "run_index": 2,
+      "conversation_id": "cc27b9b8-f978-4727-a50d-66f66417b375",
+      "outcome": "answer",
+      "document_count": 1,
+      "document_answers": [
+        {
+          "document": "Your guide to healthy eating: use the Food Pyramid",
+          "publisher": "Department of Health (Ireland)",
+          "year": 2016,
+          "answer": "The guide advises drinking at least 8 cups of fluid each day, with water being the preferred choice. It also states that there are no recommended servings for top\u2011shelf foods and drinks because they are not needed for good health.",
+          "claims": [
+            {
+              "claim": "Drink at least 8 cups of fluid each day.",
+              "section": "Fluids",
+              "page_from": 4,
+              "quote": "Drink at least 8 cups of fluid a day \u2013 water is best. Most people consume snacks high in fat, sugar and salt and sugar sweetened drinks up to 6 times a day (Healthy Ireland Survey 2016). There are no recommended servings for Top Shelf foods and drinks because they are not needed for good health.",
+              "cites_own_document": true
+            },
+            {
+              "claim": "Water is the best fluid.",
+              "section": "Fluids",
+              "page_from": 4,
+              "quote": "Drink at least 8 cups of fluid a day \u2013 water is best. Most people consume snacks high in fat, sugar and salt and sugar sweetened drinks up to 6 times a day (Healthy Ireland Survey 2016). There are no recommended servings for Top Shelf foods and drinks because they are not needed for good health.",
+              "cites_own_document": true
+            },
+            {
+              "claim": "There are no recommended servings for top\u2011shelf foods and drinks because they are not needed for good health.",
+              "section": "Fluids",
+              "page_from": 4,
+              "quote": "Drink at least 8 cups of fluid a day \u2013 water is best. Most people consume snacks high in fat, sugar and salt and sugar sweetened drinks up to 6 times a day (Healthy Ireland Survey 2016). There are no recommended servings for Top Shelf foods and drinks because they are not needed for good health.",
+              "cites_own_document": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "category": "food_safety_storage",
+      "question": "How long can leftovers stay in the fridge before they go bad?",
+      "run_index": 0,
+      "conversation_id": "26c326ba-7555-4b5b-ab02-b84a0376a467",
+      "outcome": "not_in_corpus",
+      "searched": 7
+    },
+    {
+      "id": 5,
+      "category": "food_safety_storage",
+      "question": "Is it safe to refreeze meat that's already been thawed?",
+      "run_index": 0,
+      "conversation_id": "d4c96c00-ed88-4df7-aab8-3810f980a3d4",
+      "outcome": "not_in_corpus",
+      "searched": 7
+    },
+    {
+      "id": 6,
+      "category": "cooking_methods",
+      "question": "What's the safest internal temperature for cooking chicken?",
+      "run_index": 0,
+      "conversation_id": "464227f0-1517-44fd-965e-c4a823475ec8",
+      "outcome": "not_in_corpus",
+      "searched": 7
+    },
+    {
+      "id": 7,
+      "category": "cooking_methods",
+      "question": "Does air frying reduce the nutritional value of food compared to deep frying?",
+      "run_index": 0,
+      "conversation_id": "ac05772c-d2eb-4a23-95f5-99baa6e52039",
+      "outcome": "not_in_corpus",
+      "searched": 7
+    },
+    {
+      "id": 8,
+      "category": "no_clear_answer",
+      "question": "Is a low-carb diet better than a low-fat diet for weight loss?",
+      "run_index": 0,
+      "conversation_id": "6c547bb4-f8b7-4e1d-90d1-595a7cbfd615",
+      "outcome": "not_in_corpus",
+      "searched": 7
+    },
+    {
+      "id": 9,
+      "category": "no_clear_answer",
+      "question": "Are artificial sweeteners safe to consume regularly?",
+      "run_index": 0,
+      "conversation_id": "4347b83a-0767-4d77-aa3a-b3c7fc782423",
+      "outcome": "not_in_corpus",
+      "searched": 7
+    },
+    {
+      "id": 10,
+      "category": "no_clear_answer",
+      "question": "Is dairy inflammatory?",
+      "run_index": 0,
+      "conversation_id": "5d50919b-7004-4de8-aa06-32963c2bdbde",
+      "outcome": "not_in_corpus",
+      "searched": 7
+    }
+  ]
+}

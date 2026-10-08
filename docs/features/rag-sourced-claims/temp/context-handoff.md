@@ -4,11 +4,13 @@
 reasons* — the part that lives in conversation rather than in code. Everything else is on disk and
 can be read directly.
 
-**Status as of 2026-10-06 20:40:** Phases 2.0 – 2.8 complete. **2.9 code-complete, deploy in
-progress** — Railway is pointed at `phase-2-rag-corpus`, the first build failed on a GitHub outage
-(not our code), and `railway.json` has still never produced a successful build. 189 backend tests
-pass, frontend builds clean. **Backend and frontend are on different versions right now — see §16
-before testing.** Next: finish the §16 runbook, then 2.10, which needs the deployed URL.
+**Status as of 2026-10-08: Phase 2 is complete — 2.0 through 2.10, all exit criteria met.**
+Deployed and verified end to end: backend on Railway, frontend on Vercel, corpus seeded (7
+documents / 103 chunks), all three response types working in production. 192 backend tests.
+
+A UI redesign on the Stitch design system was done outside the plan and is also live.
+
+What is left is optional: the open items in §18.
 
 > This is a working memo, not a specification. Where it disagrees with
 > [`architecture.md`](../architecture.md) or [`implementation-plan.md`](../implementation-plan.md),
@@ -401,6 +403,7 @@ docs/features/rag-sourced-claims/
   answer-layer.md           evidence: 2.5 + 2.6 — the isolation guarantee, the endpoint, the guards
   prompt-inversion-regression.md  evidence: 2.8 — the v1->v2 rewrite, 12 explained flips
   frontend.md               evidence: 2.7 — per-document blocks, four states, what wasn't eyeballed
+  failure-log.md            evidence: 2.10 — 3 findings, the gate-2 story, Phase 1 comparison
   deployment.md             evidence + RUNBOOK: 2.9 — §4 is what you must run by hand
   temp/context-handoff.md   this file
 
@@ -437,7 +440,7 @@ python -m corpus.show                    # inspect chunks
 python -m corpus.ingest --use-cache --snapshot corpus/corpus_snapshot.jsonl.gz
 python -m corpus.seed                    # idempotent
 python -m alembic current                # expect b1c7e4a92f08 (head)
-pytest -q                                # 189 passing
+pytest -q                                # 192 passing
 
 cd .. && backend/.venv/bin/python eval/run_retrieval_eval.py   # recall@k + floor sweep
 ```
@@ -596,7 +599,7 @@ with every citation intact and a Phase 1 uncited row dropped rather than rendere
 looked at** — layout, dark mode, hit targets and the panel's scrolling are reasoned from CSS only.
 frontend.md §4.2 has the commands to look.
 
-## 15. Phase 2.9, as built — code done; deploy in progress
+## 15. Phase 2.9, as built — deployed and verified
 
 Full record and runbook: [deployment.md](../deployment.md). **§4 is the part that needs your
 credentials**; the working agreement that no production credential enters a transcript is why the
@@ -639,7 +642,7 @@ reported 200.8 MB because the HuggingFace cache hardlinks each blob into `snapsh
 `st_size` (actual: 64 MiB, cross-checked with `du`); and in 2.8 an attribution detector matched the
 pronoun "who" as the organization. Neither failed; both printed a plausible wrong number.
 
-## 16. The deploy, as of 2026-10-06 20:40 — state and gotchas
+## 16. The deploy — what it took, and the two things that bit
 
 Two commits pushed: `5b3e97c` (phases 2.5–2.9) and `2a1e49a` (the Railpack fix).
 `origin/phase-2-rag-corpus` == local HEAD.
@@ -696,20 +699,55 @@ After verification: Railway → Branch → `main`, then merge `phase-2-rag-corpu
 production pinned to a feature branch is invisible until someone pushes to main and nothing
 happens.
 
-## 17. Next: finish the 2.9 runbook, then 2.10
+## 17. Phase 2.10, as built — the milestone closes here
 
-- **2.10** needs the deployed URL — its ten questions run against production, so the runbook
-  genuinely blocks it. It also inherits a real finding: the corpus answers only 5 of the 20
-  regression questions, so answer quality rests on 5 questions and 14 claims. Its ten fixed
-  questions are weighted toward what the corpus covers, and it reruns the numeric ones for
-  `inconsistent_number`, which a single pass cannot detect.
+Full record: [failure-log.md](../failure-log.md). The ten fixed questions, 16 runs, against the
+**deployed** pipeline. **3 findings, down from Phase 1's 7.**
 
-**Known, deferred, written down:** a coverage refusal cannot be traced to its conversation,
-because `retrievals` reaches one only through `message_id`, which is null for those rows;
-`/chat` is still unrate-limited and retrieval adds an embedding per request; and **nothing has
-yet run against the deployed system**.
+**Eight of ten questions were refused**, and that is the headline rather than a broken run. Five of
+those eight came from **gate 2** — the model reading passages that cleared the 0.69 floor and
+declining. q6 "safest internal temperature for chicken" retrieved FSANZ at **0.734** and was
+refused: FSANZ gives storage and cooling temperatures, not meat core temperatures, and had the
+floor alone decided, the system would have produced a confident, correctly cited, **wrong cooking
+temperature**. That is the strongest evidence yet for gate 2 being load-bearing.
 
-**Not outstanding any more:** the 2.4 eval labels *were* reviewed (§8, commit `13a85e1` — four of
-44 were wrong, recall@8 unchanged). This file carried a "should be reviewed" note past that commit
-for two phases. The live caveat is narrower and unchanged: the labels are still one person's
-judgement, and that person wrote the retriever.
+**The findings:** 2 × `uncited_claim` (q1 prose asserting a qualifier with no matching claim — and
+it matters because the sources panel is driven by `claims[]`, so the supporting passage is not
+shown) and 1 × `over_refusal` (q9 sweeteners, refused at gate 1 by **0.002** — 0.688 against a
+0.690 floor, while the DGA does say "limit" and "no amount recommended"). Not fixed: nudging the
+floor would trade a measured value for an anecdote.
+
+**Zero for the other six types, and they were genuinely looked for** — all 21 claims went through
+the overlap and quantity detectors and were then read against their quotes by hand. 0 flagged.
+
+**Did retrieval fix what it was meant to?** `inconsistent_number`: **yes, structurally** — Phase 2
+copies numbers out of passages instead of generating them, so q1's drifting range and q3's wrong
+litres-to-cups conversion have nothing left to vary. `unsupported_claim`: **no** — those questions
+now return not-in-corpus, so the failures are gone because the questions are no longer answered.
+`unverifiable_source` scores 0 but **the type inverted**, so the counts are not comparable.
+
+**A production defect found by running it:** a Groq free-tier rate limit escaped the chat endpoint
+as an unhandled exception and an opaque HTTP 500, killing the first attempt. Phase 2.8 had fixed
+this exact class of bug in the *eval harnesses* — the application never got the same treatment, so
+the one path a real user takes was the only one left unprotected. `ModelUnavailableError` → **503**
+now, distinct from the 502 that means the model answered badly.
+
+## 18. Open, and all optional
+
+Nothing here blocks anything; the milestone is complete.
+
+- **The UI redesign was never seen by me.** Layout, dark mode and hit targets were verified by the
+  user in a browser, not by me. Anything visual needs their eyes.
+- **`uncited_claim` prompt edit** — deferred, because any prompt change needs a full two-path
+  regression run (eval.md §2.3). The rule already exists in `document_answer_prompt.md` rule 4; it
+  was followed in 2 runs of 3.
+- **The q9 floor case** — a corpus change (a document that addresses sweetener safety) is the right
+  fix, not a threshold nudge.
+- **A coverage refusal cannot be traced to its conversation** — `retrievals` reaches one only
+  through `message_id`, which is null for those rows. Another migration.
+- **`/chat` is unrate-limited**, and retrieval adds an embedding per request. Named in the plan's
+  "what this does not schedule" since the start.
+- **Railway branch** — check it points at `main`; all three branches were aligned at `94da763` to
+  dodge an uncertainty during the deploy.
+- **One reviewer throughout**, who also wrote the pipeline. Every judgement call in the eval
+  documents carries that caveat.
