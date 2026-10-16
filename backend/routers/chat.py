@@ -20,20 +20,31 @@ check_document_answer    -> refused        (policy, post-model, incl. personalis
    guarantee" true rather than dependent on what happens to be indexed.
 2. **Nothing is persisted until every gate has passed.** One commit, at the end. There is
    no state in which a user message exists without its answer.
+
+`POST /chat/stream` runs the **same** sequence -- `_chat_turn`, shared, not a copy -- and
+reports progress as Server-Sent Events while it runs. Progress events name documents and
+nothing else; the response itself is the final `result` event, byte-for-byte the body
+`POST /chat` would have returned. Streaming the answer token by token is ruled out by
+property 2's sibling: the post-model gate needs the *whole* answer, and a user who has
+already read a prohibited sentence is not protected by a refusal that replaces it.
 """
 
+import json
 import logging
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from db.models import ScopeRefusal
+from db.models import Conversation, ScopeRefusal
 from db.schemas import (
     ChatAnswerResponse,
     ChatNotInCorpusResponse,
+    ChatProgress,
     ChatRefusedResponse,
     ChatRequest,
     ConversationCreateResponse,
@@ -69,6 +80,8 @@ router = APIRouter()
 _SYSTEM_PROMPT = (Path(__file__).resolve().parent.parent / "prompts" / "system_prompt.md").read_text()
 
 SearchFn = Callable[..., list[ScoredChunk]]
+
+ChatResponse = ChatAnswerResponse | ChatRefusedResponse | ChatNotInCorpusResponse
 
 
 def get_model_client() -> ModelClient:
@@ -117,29 +130,97 @@ def get_conversation(conversation_id: uuid.UUID, db: Session = Depends(get_db)) 
     return to_conversation_read(conversation)
 
 
+def _load_conversation(db: Session, conversation_id: uuid.UUID) -> Conversation:
+    conversation = load_history(db, conversation_id)
+    if conversation is None:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return conversation
+
+
 @router.post("/chat")
 def chat(
     request: ChatRequest,
     db: Session = Depends(get_db),
     model_client: ModelClient = Depends(get_model_client),
     searcher: SearchFn = Depends(get_searcher),
-) -> ChatAnswerResponse | ChatRefusedResponse | ChatNotInCorpusResponse:
-    conversation = load_history(db, request.conversation_id)
-    if conversation is None:
-        raise HTTPException(status_code=404, detail="Conversation not found")
+) -> ChatResponse:
+    conversation = _load_conversation(db, request.conversation_id)
+    # The last step of a turn is its response; the progress steps before it are dropped.
+    *_, response = _chat_turn(request, conversation, db, model_client, searcher)
+    return response
 
+
+@router.post("/chat/stream")
+def chat_stream(
+    request: ChatRequest,
+    db: Session = Depends(get_db),
+    model_client: ModelClient = Depends(get_model_client),
+    searcher: SearchFn = Depends(get_searcher),
+) -> StreamingResponse:
+    """`POST /chat` as Server-Sent Events: `progress`*, then exactly one `result` or `error`.
+
+    The 404 is checked *before* the stream opens, so it is still a real 404. Every later
+    failure happens after a `200` has been sent, so it arrives as an `error` event carrying
+    the status and detail `POST /chat` would have returned -- 502 and 503 keep their
+    meaning, only their transport changes.
+
+    The DB session outlives this function and stays open until the stream finishes: since
+    FastAPI 0.118 a yield dependency's teardown runs after the response is sent.
+    """
+    conversation = _load_conversation(db, request.conversation_id)
+    return StreamingResponse(
+        _as_sse(_chat_turn(request, conversation, db, model_client, searcher)),
+        media_type="text/event-stream",
+        # No caching, and no proxy buffering -- a buffered stream is one slow response.
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+def _as_sse(turn: Iterator[ChatProgress | ChatResponse]) -> Iterator[str]:
+    try:
+        for step in turn:
+            yield _sse_event("progress" if isinstance(step, ChatProgress) else "result", step)
+    except HTTPException as exc:
+        yield _sse_event("error", {"status": exc.status_code, "detail": exc.detail})
+    except Exception:
+        # Under `POST /chat` this would be FastAPI's bare 500. The status line has already
+        # gone out here, so the client hears it as an event instead of a dropped connection.
+        logger.exception("chat_stream_failure")
+        yield _sse_event("error", {"status": 500, "detail": "Internal Server Error"})
+
+
+def _sse_event(name: str, data: BaseModel | dict) -> str:
+    payload = data.model_dump_json() if isinstance(data, BaseModel) else json.dumps(data)
+    return f"event: {name}\ndata: {payload}\n\n"
+
+
+def _chat_turn(
+    request: ChatRequest,
+    conversation: Conversation,
+    db: Session,
+    model_client: ModelClient,
+    searcher: SearchFn,
+) -> Iterator[ChatProgress | ChatResponse]:
+    """The gate sequence, as a generator: zero or more `ChatProgress`, then the response.
+
+    Failures are raised as `HTTPException`, exactly as before; each endpoint decides how to
+    deliver them. Nothing observable about the gates depends on which endpoint is driving.
+    """
     # Gate: policy, pre-model. Deliberately the first thing after the 404 and before any
     # embedding or retrieval call -- see this module's docstring, property 1.
     pre_verdict = check_request(request.message)
     if pre_verdict.blocked:
         _persist_refusal(db, request.conversation_id, request.message, pre_verdict.reason, "pre_model")
-        return ChatRefusedResponse(
+        yield ChatRefusedResponse(
             reason=pre_verdict.reason, message=REFUSAL_MESSAGES[pre_verdict.reason]
         )
+        return
 
     # The full corpus, or the one filtered document -- never only the documents that scored
     # well. A user cannot judge the gap from a list that omits the misses (§7.3).
     searched = document_refs(db, document_id=request.document_filter)
+    # After the pre-model gate, so a refused question never reports a search it did not run.
+    yield ChatProgress(stage="searching", documents=searched)
 
     # `RETRIEVAL_K` / `RETRIEVAL_FLOOR` default to the Phase 2.4 measured values and are
     # overridable on Railway (architecture.md §12.1). An override is logged loudly at import
@@ -161,7 +242,13 @@ def chat(
     # Gate 1: nothing cleared the floor. No generation call is made at all.
     if not contexts:
         persist_coverage_refusal(db, request.conversation_id, evidence)
-        return ChatNotInCorpusResponse(message=NOT_IN_CORPUS_MESSAGE, searched=searched)
+        yield ChatNotInCorpusResponse(message=NOT_IN_CORPUS_MESSAGE, searched=searched)
+        return
+
+    # The slow part -- one model call per document -- starts here. Which documents cleared
+    # the floor is retrieval metadata, not model output, so it is safe to say before the
+    # post-model gate has run.
+    yield ChatProgress(stage="reading", documents=[c.document for c in contexts])
 
     try:
         result = synthesise(
@@ -206,7 +293,8 @@ def chat(
     # to 0.02 -- retrieval-calibration.md §4.
     if not result.answered:
         persist_coverage_refusal(db, request.conversation_id, evidence)
-        return ChatNotInCorpusResponse(message=NOT_IN_CORPUS_MESSAGE, searched=searched)
+        yield ChatNotInCorpusResponse(message=NOT_IN_CORPUS_MESSAGE, searched=searched)
+        return
 
     # Gate: policy, post-model, now including personalisation (architecture.md §9.1). One
     # tripped answer discards the **whole** turn, every document's answer with it: a
@@ -218,9 +306,10 @@ def chat(
             _persist_refusal(
                 db, request.conversation_id, request.message, post_verdict.reason, "post_model"
             )
-            return ChatRefusedResponse(
+            yield ChatRefusedResponse(
                 reason=post_verdict.reason, message=REFUSAL_MESSAGES[post_verdict.reason]
             )
+            return
 
     # Every gate has passed. One commit: user message, one assistant message per document,
     # every claim with its citation, and the retrieval evidence.
@@ -232,4 +321,4 @@ def chat(
         evidence=evidence,
     )
 
-    return ChatAnswerResponse(document_answers=result.document_answers, searched=searched)
+    yield ChatAnswerResponse(document_answers=result.document_answers, searched=searched)

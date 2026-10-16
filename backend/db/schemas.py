@@ -170,6 +170,19 @@ class ChatRefusedResponse(BaseModel):
     message: str
 
 
+class ChatProgress(BaseModel):
+    """A `POST /chat/stream` progress event: which gate the turn has reached, never content.
+
+    It carries only document references: the full corpus searched (`searching`) or the
+    documents that cleared the floor and are now being read (`reading`). Model output
+    never travels in a progress event, because none of it has passed the post-model scope
+    guard yet -- the answer arrives whole, in the final `result` event, or not at all.
+    """
+
+    stage: Literal["searching", "reading"]
+    documents: list[DocumentRef]
+
+
 class ChatNotInCorpusResponse(BaseModel):
     """The **coverage** refusal: the corpus does not. Persisted to `retrievals`.
 

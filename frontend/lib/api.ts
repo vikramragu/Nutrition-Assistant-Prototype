@@ -81,6 +81,16 @@ export type ChatNotInCorpusResponse = {
 
 export type ChatResponse = ChatAnswerResponse | ChatRefusedResponse | ChatNotInCorpusResponse;
 
+/**
+ * Which gate a streamed turn has reached. Document references only — never model output,
+ * which has not passed the post-model scope guard until the final `result` event.
+ */
+export type ChatProgress = {
+  /** `searching`: the whole corpus (or filtered document). `reading`: what cleared the floor. */
+  stage: "searching" | "reading";
+  documents: DocumentRef[];
+};
+
 export type ClaimRead = {
   id: string;
   claim_text: string;
@@ -158,6 +168,14 @@ export async function getCorpus(): Promise<CorpusResponse> {
   return parseOrThrow(res, "Failed to load corpus");
 }
 
+function chatRequestBody(conversationId: string, message: string, documentFilter?: string) {
+  return JSON.stringify({
+    conversation_id: conversationId,
+    message,
+    ...(documentFilter ? { document_filter: documentFilter } : {}),
+  });
+}
+
 export async function sendChatMessage(
   conversationId: string,
   message: string,
@@ -168,11 +186,66 @@ export async function sendChatMessage(
   const res = await fetch(`${API_BASE_URL}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      conversation_id: conversationId,
-      message,
-      ...(documentFilter ? { document_filter: documentFilter } : {}),
-    }),
+    body: chatRequestBody(conversationId, message, documentFilter),
   });
   return parseOrThrow(res, "Chat request failed");
+}
+
+/**
+ * `sendChatMessage` over `POST /chat/stream`: same request, same resolved `ChatResponse`,
+ * with `onProgress` called as the turn passes each gate.
+ *
+ * Read with `fetch` rather than `EventSource`, which can only send a GET. A 502 or 503
+ * arrives as an `error` event after a 200 and is rethrown as the same `ApiError` the plain
+ * endpoint would have produced, so callers handle both identically.
+ */
+export async function streamChatMessage(
+  conversationId: string,
+  message: string,
+  onProgress: (progress: ChatProgress) => void,
+  documentFilter?: string
+): Promise<ChatResponse> {
+  const res = await fetch(`${API_BASE_URL}/chat/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
+    body: chatRequestBody(conversationId, message, documentFilter),
+  });
+  if (!res.ok || !res.body) {
+    throw new ApiError(res.status, `Chat request failed: ${res.status}`);
+  }
+
+  const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+  let buffer = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += value;
+
+    // Events end with a blank line; anything after the last one is still arriving.
+    let boundary: number;
+    while ((boundary = buffer.indexOf("\n\n")) !== -1) {
+      const block = buffer.slice(0, boundary);
+      buffer = buffer.slice(boundary + 2);
+
+      let event = "message";
+      let data = "";
+      for (const line of block.split("\n")) {
+        if (line.startsWith("event: ")) event = line.slice(7);
+        else if (line.startsWith("data: ")) data += line.slice(6);
+      }
+
+      if (event === "progress") {
+        onProgress(JSON.parse(data) as ChatProgress);
+      } else if (event === "result") {
+        await reader.cancel();
+        return JSON.parse(data) as ChatResponse;
+      } else if (event === "error") {
+        const { status } = JSON.parse(data) as { status: number; detail: string };
+        throw new ApiError(status, `Chat request failed: ${status}`);
+      }
+    }
+  }
+  // The server always ends with `result` or `error`; reaching here means the connection
+  // dropped mid-turn.
+  throw new ApiError(0, "Chat stream ended before a result");
 }

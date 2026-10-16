@@ -12,6 +12,7 @@ The model is always a fake. No test in this file spends a Groq credit.
 
 from __future__ import annotations
 
+import json
 import uuid
 
 import pytest
@@ -792,3 +793,146 @@ def test_unavailable_and_malformed_are_different_statuses(
     malformed = _post(client, conversation_id, "What does the guidance say?")
 
     assert (unavailable.status_code, malformed.status_code) == (503, 502)
+
+
+# --- POST /chat/stream: the same turn, with progress ------------------------------------
+
+
+def _stream(client, conversation_id, message, **extra):
+    return client.post(
+        "/chat/stream",
+        json={"conversation_id": str(conversation_id), "message": message, **extra},
+    )
+
+
+def _events(response) -> list[tuple[str, dict]]:
+    """Parse an SSE body into (event, data) pairs, in order."""
+    events = []
+    for block in response.text.strip().split("\n\n"):
+        fields = dict(line.split(": ", 1) for line in block.splitlines())
+        events.append((fields["event"], json.loads(fields["data"])))
+    return events
+
+
+def test_stream_reports_progress_then_the_same_body_chat_returns(
+    client, conversation_id, two_documents
+):
+    """The point of the endpoint: progress first, then the answer, unchanged and whole."""
+    (chunk_a, doc_a), (chunk_b, doc_b) = two_documents
+    app.dependency_overrides[get_searcher] = lambda: _SpySearcher(
+        [_scored(chunk_a, doc_a, 0.85), _scored(chunk_b, doc_b, 0.75)]
+    )
+    app.dependency_overrides[get_model_client] = lambda: _FakeModelClient(
+        {
+            doc_a.name: _answers("A says this.", [("A's claim.", chunk_a.id)]),
+            doc_b.name: _answers("B says this.", [("B's claim.", chunk_b.id)]),
+        }
+    )
+
+    plain = _post(client, conversation_id, "What does the guidance say?").json()
+    response = _stream(client, conversation_id, "What does the guidance say?")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+    events = _events(response)
+    assert [(name, data.get("stage")) for name, data in events] == [
+        ("progress", "searching"),
+        ("progress", "reading"),
+        ("result", None),
+    ]
+    assert events[-1][1] == plain
+
+
+def test_stream_progress_names_documents_and_carries_no_model_output(
+    client, conversation_id, two_documents, db
+):
+    """`searching` is the full corpus; `reading` is only what cleared the floor. Neither
+    carries a word the model wrote -- that has not passed the post-model gate yet."""
+    (chunk_a, doc_a), (chunk_b, doc_b) = two_documents
+    app.dependency_overrides[get_searcher] = lambda: _SpySearcher(
+        [_scored(chunk_a, doc_a, 0.85), _scored(chunk_b, doc_b, BELOW_FLOOR)]
+    )
+    app.dependency_overrides[get_model_client] = lambda: _FakeModelClient(
+        {doc_a.name: _answers("A says this.", [("A's claim.", chunk_a.id)])}
+    )
+
+    events = _events(_stream(client, conversation_id, "What does the guidance say?"))
+
+    searching, reading = (data for name, data in events if name == "progress")
+    assert len(searching["documents"]) == _corpus_size(db)
+    assert [d["id"] for d in reading["documents"]] == [str(doc_a.id)]
+    assert set(searching) == set(reading) == {"stage", "documents"}
+
+
+def test_stream_policy_refusal_sends_no_progress_and_never_retrieves(client, conversation_id):
+    searcher = _SpySearcher()
+    app.dependency_overrides[get_searcher] = lambda: searcher
+    app.dependency_overrides[get_model_client] = lambda: _FakeModelClient()
+
+    events = _events(_stream(client, conversation_id, "What should I weigh?"))
+
+    assert [name for name, _ in events] == ["result"]
+    assert events[0][1]["type"] == "refused"
+    assert not searcher.called
+
+
+def test_stream_nothing_above_the_floor_never_reports_reading(
+    client, conversation_id, two_documents
+):
+    chunk, document = two_documents[0]
+    model = _FakeModelClient()
+    app.dependency_overrides[get_searcher] = lambda: _SpySearcher(
+        [_scored(chunk, document, BELOW_FLOOR)]
+    )
+    app.dependency_overrides[get_model_client] = lambda: model
+
+    events = _events(_stream(client, conversation_id, "What is the best creatine dose?"))
+
+    assert [(name, data.get("stage")) for name, data in events] == [
+        ("progress", "searching"),
+        ("result", None),
+    ]
+    assert events[-1][1]["type"] == "not_in_corpus"
+    assert model.calls == 0
+
+
+def test_stream_unknown_conversation_is_still_a_real_404(client):
+    """Checked before the stream opens, so it keeps its status line."""
+    searcher = _SpySearcher()
+    app.dependency_overrides[get_searcher] = lambda: searcher
+    app.dependency_overrides[get_model_client] = lambda: _FakeModelClient()
+
+    response = _stream(client, uuid.uuid4(), "How much protein do I need?")
+
+    assert response.status_code == 404
+    assert not searcher.called
+
+
+@pytest.mark.parametrize(
+    ("error", "status"),
+    [
+        (CitationError("cited something it was not given"), 502),
+        (ModelResponseError("not conformant"), 502),
+        (ModelUnavailableError("RateLimitError: 429"), 503),
+    ],
+)
+def test_stream_failures_after_the_stream_opens_arrive_as_error_events(
+    client, conversation_id, two_documents, db, error, status
+):
+    """The 200 has already gone out, so the status travels in the event -- with the same
+    detail `POST /chat` returns -- and, as there, nothing is persisted."""
+    chunk, document = two_documents[0]
+    app.dependency_overrides[get_searcher] = lambda: _SpySearcher(
+        [_scored(chunk, document, ABOVE_FLOOR)]
+    )
+    app.dependency_overrides[get_model_client] = lambda: _FakeModelClient(error=error)
+
+    plain = _post(client, conversation_id, "What does the guidance say?")
+    response = _stream(client, conversation_id, "What does the guidance say?")
+
+    assert response.status_code == 200
+    name, data = _events(response)[-1]
+    assert name == "error"
+    assert data == {"status": status, "detail": plain.json()["detail"]}
+    assert plain.status_code == status
+    assert db.scalars(select(Message).where(Message.conversation_id == conversation_id)).all() == []

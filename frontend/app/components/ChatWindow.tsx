@@ -5,7 +5,8 @@ import {
   createConversation,
   getConversation,
   getCorpus,
-  sendChatMessage,
+  streamChatMessage,
+  type ChatProgress,
   type CorpusResponse,
 } from "@/lib/api";
 import AppHeader from "./AppHeader";
@@ -35,6 +36,21 @@ function storeConversationId(id: string): void {
   }
 }
 
+/** What the turn is doing right now. Before the first event, the same line as before. */
+function progressLabel(progress: ChatProgress | null): string {
+  if (progress?.stage === "searching") {
+    const n = progress.documents.length;
+    return `Searching ${n} ${n === 1 ? "document" : "documents"}…`;
+  }
+  if (progress?.stage === "reading") {
+    const [first, ...rest] = progress.documents;
+    return rest.length === 0
+      ? `Reading ${first.name}…`
+      : `Reading ${progress.documents.length} documents…`;
+  }
+  return "Searching the guidance…";
+}
+
 let localIdCounter = 0;
 function newLocalId(): string {
   localIdCounter += 1;
@@ -55,6 +71,7 @@ export default function ChatWindow() {
   const [draft, setDraft] = useState("");
   const [isInitializing, setIsInitializing] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [progress, setProgress] = useState<ChatProgress | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
   const [selection, setSelection] = useState<CitationSelection | null>(null);
   const [corpus, setCorpus] = useState<CorpusResponse | null>(null);
@@ -156,7 +173,7 @@ export default function ChatWindow() {
     setIsSending(true);
 
     try {
-      const response = await sendChatMessage(conversationId, text);
+      const response = await streamChatMessage(conversationId, text, setProgress);
 
       if (response.type === "answer") {
         const id = newLocalId();
@@ -193,6 +210,7 @@ export default function ChatWindow() {
       ]);
     } finally {
       setIsSending(false);
+      setProgress(null);
     }
   }
 
@@ -224,7 +242,7 @@ export default function ChatWindow() {
                 />
                 {isSending && (
                   <p className={styles.thinking} role="status">
-                    Searching the guidance…
+                    {progressLabel(progress)}
                   </p>
                 )}
               </>
