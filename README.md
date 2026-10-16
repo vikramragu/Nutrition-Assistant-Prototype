@@ -167,6 +167,93 @@ The honest counterweight: **eight of the ten questions now get a refusal**, beca
 
 ---
 
+## 7. The evidence documents
+
+Each Phase 2 step left a record of what was *measured*, not only what was built. Four of them hold the numbers this README quotes. Read them in pipeline order: what went into the index, how well it is searched, how an answer is made from it, and what the prompt change did to the whole.
+
+| Document | Phase | The question it answers |
+|---|---|---|
+| [ingestion-report.md](docs/features/rag-sourced-claims/ingestion-report.md) | 2.1–2.3 | What went into the index, and what was deliberately kept out? |
+| [retrieval-calibration.md](docs/features/rag-sourced-claims/retrieval-calibration.md) | 2.4 | Does search find the right passage, and where does the relevance floor go? |
+| [answer-layer.md](docs/features/rag-sourced-claims/answer-layer.md) | 2.5–2.6 | How is a cited answer produced, and what stops a bad one? |
+| [prompt-inversion-regression.md](docs/features/rag-sourced-claims/prompt-inversion-regression.md) | 2.8 | Did rewriting the system prompt change behaviour, and why did each changed outcome change? |
+
+### 7.1 ingestion-report.md — turning seven documents into 103 chunks
+
+Records how the PDFs and the WHO web page were parsed and chunked, the size of every document's chunks, and each defect found along the way.
+
+> **Example.** In the first clean run, the largest chunk in the whole index was WHO's **REFERENCES** section: 618 tokens of names like *"Hooper L, Abdelhamid A… Cochrane Database Syst Rev. 2015"*. Retrieved, it invites the model to attribute a claim to a study it has only seen listed. That is the `unverifiable_source` failure this project exists to prevent. Reference lists, contents pages and acknowledgements are now excluded by heading. Matching on "reference" as a substring is what also catches FSSAI's *"Other References"*.
+
+It is also where the most serious parser defect is written up: every Dietary Guidelines heading was attached to the *next* section, so *"Eat a variety of colourful vegetables"* was cited as **§ Gut Health** (§9.5).
+
+### 7.2 retrieval-calibration.md — measuring search, and setting the floor
+
+A hand-labelled set of 28 questions (20 the corpus answers, 8 it does not) measures two things: whether search returns the right chunk (recall@k), and the score that separates the two groups. That score is the relevance floor, which *is* the not-in-corpus refusal.
+
+> **Example.** The weakest question the corpus genuinely answers still scores **0.709**. The strongest one it does *not* answer, *"standard drinks a week, lower-risk limit for women"*, reaches **0.680**, because the Irish food pyramid's Fluids section is on the right topic even though the limit itself was quarantined. The floor has to fit between them. A sweep across candidate values shows 0.68–0.70 is the only range that answers all 20 and refuses all 8. **0.69** is its midpoint: 0.010 above the worst negative and 0.019 below the worst positive.
+
+That gap is only 0.02 wide. So this document is also why the model's own verdict (`answers_question`, gate 2) is treated as the stronger of the two gates.
+
+### 7.3 answer-layer.md — producing a cited answer, and the endpoint
+
+Covers one generation call per document, the citation validator, which rules block a response and which only log, the `POST /chat` wire types, and the personalisation scope rule.
+
+> **Example.** The model returns only `{claim, chunk_id}`. It never writes a publisher, year or URL; the backend fills those in from the database. Suppose the call that was given WHO's passages cites a Dietary Guidelines chunk. The id is real, but that call was never given it, so the whole response fails with a **502**. Nothing is repaired. Dropping that claim would leave prose whose support has quietly vanished, and rewriting the citation would mean the backend choosing a source for a sentence it did not write.
+
+It also records a defect found by reading one rendered prompt rather than by running tests: every prompt carried its passages **twice** and was 58% over size, because the template's own comment named the placeholders (§5).
+
+### 7.4 prompt-inversion-regression.md — the prompt rewrite, regression-tested
+
+v1 of the system prompt forbade naming any source, which was right for Phase 1 and wrong once every claim must cite one. This document records the change to v2 and two regression runs, separated so that each changed outcome has exactly one possible cause: the Phase 1 path first (isolating the prompt edit: 0 flips), then the retrieval path (isolating retrieval: 12 flips, each explained).
+
+> **Example.** *"What internal temperature should ground beef be cooked to?"* retrieved the FSANZ food-safety document at **0.743**, well above the floor, because FSANZ is full of temperatures: 5 °C, 60 °C, the 2-hour/4-hour rule. But none of them is a cooking temperature for beef. The model read the passages and answered `answers_question: false`. Without gate 2 this would have been a confident, correctly cited, **wrong** answer.
+
+It also found an `over_refusal` in the corpus's own safest sentence. The Dietary Guidelines' *"If you have a chronic disease, talk with your health care professional…"* tripped the medical-advice guard, which was then fixed to tell a hypothetical apart from an assertion (§6.2).
+
+---
+
+## 8. Decisions worth knowing, and why
+
+Consolidated from the Phase 2 working notes ([context-handoff.md](docs/features/rag-sourced-claims/temp/context-handoff.md)). These are the decisions that look odd, or easy to "simplify", until you know the reason.
+
+### Storage and the corpus
+
+| Decision | Why |
+|---|---|
+| **pgvector in the existing Postgres**, not Chroma or Pinecone | Railway Postgres already exists. A separate vector store would add a service, a secret and an outage surface to hold 103 rows. |
+| **Chunk ids are `uuid5("slug:ordinal")`**, not random | `claims.chunk_id` is a foreign key. Random ids would orphan every past citation on each re-seed, and re-seeding is routine because guidance documents are revised in place. Hashing the chunk *text* was rejected: it would mint new ids on any whitespace change. |
+| **The corpus snapshot is gzipped JSONL, committed to git** | A corpus change becomes a reviewable diff. Production loads the snapshot and never parses a PDF or contacts a publisher's site. |
+| **The seed fingerprints the chunking, not only the source file** | After the heading fix, re-seeding printed `skipped=7, chunks written=0`. The PDFs had not changed, only how we read them, so a byte hash called the stale chunks up to date. A tool that reports success while being out of date is worse than the bug it hid. |
+| **WHO's 2018 PDF was replaced by WHO's current 2026 page** | The PDF still said free sugars "less than 5%" and fat "30% of total energy", guidance WHO has since revised. The corpus was shipping stale advice. |
+
+### Parsing and retrieval
+
+| Decision | Why |
+|---|---|
+| **Queries and passages are embedded by two separate methods** (`embed_query`, `embed_passages`) | BGE is asymmetric: queries need a fixed instruction prefix and passages must have none. `fastembed`'s own `query_embed()` turned out *not* to add the prefix (its output is byte-identical to `embed()`, verified), so it is not used. Getting this wrong would quietly degrade retrieval and look like over-refusal. |
+| **PDF text is re-ordered by layout bands and columns** before chunking | A PDF stores positioned text boxes in no guaranteed reading order. Read in stored order, every Dietary Guidelines heading landed on the wrong section. Two simpler fixes failed first: sorting by position spliced two columns mid-sentence, and splitting at the page midpoint broke the single-column FSANZ document. The final shape is in `parse._reading_order`. |
+| **The floor was not nudged for the one over-refusal** | The sweeteners question missed the floor by 0.002. Moving a measured value to fix one anecdote would invalidate the whole calibration. The right fix is a document that actually covers sweeteners. |
+
+### Answering and the API
+
+| Decision | Why |
+|---|---|
+| **`chunk_id` is validated in our code, not constrained by the model's decoder** | Listing the allowed ids as a JSON Schema `enum` in Groq strict mode would be a stronger guarantee in principle. But support for it is unverified, and it moves the guarantee into a vendor's decoder, where a regression would be invisible. The validator is tested and fails loudly. |
+| **`chunk_id` is typed `str`, not `UUID`, in the model's schema** | A fabricated id then fails *citation* validation ("cited something it was not given") rather than *schema* validation ("broke the contract"). Both are a 502; only one tells you what happened. |
+| **503 for "model unavailable", 502 for "model answered badly"** | A rate limit or timeout is transient and worth retrying; a schema or citation failure is not. Nothing is persisted in either case, so a retry starts clean. |
+| **`POST /chat/stream` streams progress, never the answer** | Progress is sent as Server-Sent Events: `searching` (the corpus), then `reading` (the documents that cleared the floor). Then the final `result` event carries exactly the body `POST /chat` returns. The answer is not streamed token by token, because the post-model scope guard needs the *whole* answer, and a refusal cannot protect a user who has already read the prohibited sentence. `POST /chat` is unchanged, because the eval harness and the tests depend on its status codes. Once a stream has started it has already sent 200, so the stream endpoint reports later failures as `event: error`. |
+
+### Deployment
+
+| Decision | Why |
+|---|---|
+| **The embedding model is downloaded at build time and loaded at startup** | Lazily, a container without the weights would boot green and then download 64 MiB on a real user's first question. Loading at startup turns that into a failed deploy, with the path it looked in printed next to the error. One constant, `CACHE_PATH`, serves both the build step and the runtime, so the two cannot disagree. |
+| **The build config is `backend/railway.json`**, not `nixpacks.toml` | Railway builds with Railpack, which ignores `nixpacks.toml`, and a skipped build step does not fail the deploy. The original config would have silently never run. |
+
+**The pattern behind most of these:** the worst defects produced plausible output and no error. The wrong-section headings, the doubled prompts, the identical timestamps and the "up to date" seed were each found by reading the data, not by running the code.
+
+---
+
 ## Running it
 
 - **Local dev**: `docker-compose up` for Postgres, then `backend/` (`uvicorn main:app --reload`) and `frontend/` (`npm run dev`) — see `docs/deployment.md` for env vars.
